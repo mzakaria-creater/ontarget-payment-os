@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --gold: #D4AF37;
+  --gold-light: #F0D060;
+  --gold-dark: #A88C20;
+  --purple: #7C3AED;
+  --purple-light: #9F67FF;
+  --bg: #080808;
+  --bg-1: #111111;
+  --bg-2: #1A1A1A;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-gold: rgba(212, 175, 55, 0.25);
+  --text-muted: rgba(255, 255, 255, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[dir='rtl'] body,
+[dir='rtl'] {
+  font-family: 'Cairo', system-ui, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Glass utilities */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .glass-gold {
+    background: rgba(212, 175, 55, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+  }
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .gradient-text-gold {
+    background: linear-gradient(135deg, #D4AF37, #F0D060);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glow-gold {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.15), 0 0 80px rgba(212, 175, 55, 0.05);
+  }
+  .glow-purple {
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.2);
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, #D4AF37, #A88C20);
+    color: #000;
+    font-weight: 700;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-gold:hover { opacity: 0.9; }
+  .btn-gold:active { transform: scale(0.98); }
+
+  .input-dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    transition: border-color 0.2s;
+  }
+  .input-dark:focus {
+    outline: none;
+    border-color: rgba(212, 175, 55, 0.6);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  }
+  .input-dark::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    text-decoration: none;
+  }
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .sidebar-item.active {
+    background: rgba(212, 175, 55, 0.1);
+    color: #D4AF37;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+  }
+}
+
+/* Status badge base */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.animate-slide-up { animation: slideUp 0.3s ease forwards; }
+.animate-fade-in  { animation: fadeIn 0.25s ease forwards; }
+.animate-pulse-dot { animation: pulseDot 1.5s ease-in-out infinite; }
