@@ -1,0 +1,145 @@
+/* ============================================================
+   OnTarget Design System — Tokens v1
+   "The ledger is alive" — a 24/7 money-movement command center.
+
+   Subject: real EGP deposits/payouts flowing through mobile wallets
+   and Instapay, watched live by a small ops team. Not a marketing
+   site — a control room. Calm, high-density, always-on.
+
+   Signature element: the pulse — a slow heartbeat glow (gold when
+   idle-healthy, mint when a match just landed, coral when something
+   needs eyes) that appears on the sidebar rail, live-status dots,
+   and freshly-updated data. It's the one motif that says "this
+   screen is watching money move right now."
+   ============================================================ */
+
+:root{
+  /* ---- Surface (a bank vault at night, not pure black) ---- */
+  --void:      #05070c;   /* page background */
+  --panel:     #0b1020;   /* primary card surface */
+  --panel2:    #111830;   /* nested / hover surface */
+  --panel3:    #161f3d;   /* table headers, deepest nesting */
+  --line:      #1d2740;   /* hairline borders */
+  --line2:     #2a3557;   /* stronger borders, focus rings */
+
+  /* ---- Ledger accent (gold = value, the thing being tracked) ---- */
+  --gold:        #d9b26a;
+  --gold-bright: #f0cd8a;
+  --gold-dim:    #7a6636;
+
+  /* ---- Semantic status (money has exactly these four states) ---- */
+  --mint:      #2dd4a7;   /* paid / matched / live */
+  --mint-dim:  #164a3c;
+  --coral:     #f4685f;   /* declined / blocked / risk */
+  --coral-dim: #4a1f1d;
+  --amber:     #f0b43a;   /* pending / needs a human */
+  --amber-dim: #4a3a14;
+  --sky:       #5b9ee8;   /* informational, neutral-positive */
+
+  /* ---- Text ---- */
+  --ink:   #eef1f8;
+  --mute:  #7a86a8;
+  --mute2: #4d5877;
+
+  /* ---- Radius & shape ---- */
+  --radius:    14px;  /* panels, modals */
+  --radius-sm: 9px;   /* buttons, pills, inputs */
+
+  /* ---- Spacing scale (4px base) ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  /* ---- Type ---- */
+  --font-display: 'Cairo', sans-serif;   /* Arabic-first UI + headings */
+  --font-mono:    'JetBrains Mono', monospace; /* IDs, amounts, timestamps */
+  --fs-xs: 10px; --fs-sm: 11.5px; --fs-base: 13px; --fs-md: 14px;
+  --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 24px;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(.4,0,.2,1);
+  --pulse-speed: 1.8s;
+}
+
+/* ============================================================
+   Signature: the pulse. Use on anything representing "live now" —
+   a sidebar rail, a status dot, a just-landed row. Color communicates
+   state; the pulse itself communicates "this is happening in real time."
+   ============================================================ */
+@keyframes ot-pulse{
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .4; }
+}
+@keyframes ot-pulse-glow{
+  0%, 100% { box-shadow: 0 0 6px 1px currentColor; opacity: .55; }
+  50%      { box-shadow: 0 0 14px 3px currentColor; opacity: 1; }
+}
+.ot-pulse-dot{
+  width: 7px; height: 7px; border-radius: 50%;
+  animation: ot-pulse-glow var(--pulse-speed) ease-in-out infinite;
+}
+.ot-pulse-dot.mint  { background: var(--mint);  color: var(--mint); }
+.ot-pulse-dot.gold  { background: var(--gold);  color: var(--gold); }
+.ot-pulse-dot.coral { background: var(--coral); color: var(--coral); }
+.ot-pulse-dot.amber { background: var(--amber); color: var(--amber); }
+.ot-pulse-dot.dead  { background: var(--mute2); animation: none; }
+
+/* ============================================================
+   Base component tokens — shared button/pill/panel language.
+   Both the ops console and the API console should build FROM
+   these, not redefine their own.
+   ============================================================ */
+.ot-panel{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--sp-5) var(--sp-6);
+}
+
+.ot-pill{
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: var(--fs-xs); font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--panel3); color: var(--mute);
+}
+.ot-pill.g{ background: var(--mint-dim);  color: var(--mint);  }
+.ot-pill.r{ background: var(--coral-dim); color: var(--coral); }
+.ot-pill.a{ background: var(--amber-dim); color: var(--amber); }
+
+.ot-btn{
+  font-family: var(--font-display);
+  font-size: var(--fs-sm); font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line2);
+  padding: 9px 16px;
+  background: var(--panel2); color: var(--ink);
+  cursor: pointer;
+  transition: transform .08s var(--ease), border-color .12s var(--ease);
+}
+.ot-btn:hover{ border-color: var(--gold-dim); transform: translateY(-1px); }
+.ot-btn.gold{ background: linear-gradient(135deg, var(--gold), #b8945a); color:#1a1408; border-color: transparent; }
+.ot-btn.green{ background: var(--mint-dim); color: var(--mint); border-color: rgba(45,212,167,.3); }
+.ot-btn.red{ background: var(--coral-dim); color: var(--coral); border-color: rgba(244,104,95,.3); }
+
+/* ============================================================
+   Mobile-friendly table→card pattern (already proven in the ops
+   console). Any new page's tables should carry this class so they
+   collapse to cards under 760px automatically.
+   ============================================================ */
+@media (max-width: 760px){
+  .ot-mobile-cards table, .ot-mobile-cards thead, .ot-mobile-cards tbody,
+  .ot-mobile-cards th, .ot-mobile-cards td, .ot-mobile-cards tr{ display: block; }
+  .ot-mobile-cards thead{ display: none; }
+  .ot-mobile-cards tr{
+    background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .ot-mobile-cards td{
+    border: none; padding: 6px 0;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .ot-mobile-cards td::before{
+    content: attr(data-label); color: var(--gold-dim); font-weight: 700;
+    font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .5px; flex: none;
+  }
+}
