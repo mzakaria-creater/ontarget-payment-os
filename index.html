@@ -290,11 +290,30 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
 ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
 
+/* 🆕 عرض كروت للجداول على الموبايل بدل الجدول الأفقي */
+@media(max-width:700px){
+  .tbl-wrap.mobile-cards table, .tbl-wrap.mobile-cards thead, .tbl-wrap.mobile-cards tbody, .tbl-wrap.mobile-cards th, .tbl-wrap.mobile-cards td, .tbl-wrap.mobile-cards tr{display:block}
+  .tbl-wrap.mobile-cards thead{display:none}
+  .tbl-wrap.mobile-cards tr{margin-bottom:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel2)}
+  .tbl-wrap.mobile-cards td{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 2px;border-top:1px solid var(--line);text-align:left}
+  .tbl-wrap.mobile-cards td:first-child{border-top:none}
+  .tbl-wrap.mobile-cards td::before{content:attr(data-label);font-weight:800;color:var(--gold-dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px;flex:none;margin-left:10px}
+  .tbl-wrap.mobile-cards td:empty::before{content:none}
+}
 @media(max-width:900px){
   .sidebar{width:72px}
   .brand p, .brand h1, .nav-group-label, .tab span.label{display:none}
   .tab{justify-content:center}
   .status-row{display:none}
+}
+@media(max-width:760px){
+  .mobile-cards table, .mobile-cards thead, .mobile-cards tbody, .mobile-cards th, .mobile-cards td, .mobile-cards tr{display:block}
+  .mobile-cards thead{display:none}
+  .mobile-cards tr{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .mobile-cards td{border:none;padding:6px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left}
+  .mobile-cards td::before{content:attr(data-label);color:var(--gold-dim);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;flex:none}
+  .mobile-cards td:last-child{flex-wrap:wrap;justify-content:flex-start;padding-top:10px;border-top:1px solid var(--line);margin-top:4px}
+  .mobile-cards td:last-child::before{content:''}
 }
 @keyframes tvpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
 @keyframes tvSlideIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
@@ -307,7 +326,18 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-<div class="shell">
+<div id="loginScreen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--void)">
+  <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:36px 32px;width:100%;max-width:340px;text-align:center">
+    <div style="width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg, var(--gold), var(--gold-dim));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#1a1408;margin:0 auto 16px">O</div>
+    <h1 style="font-size:17px;margin:0 0 4px;font-weight:800">ON<span style="color:var(--gold-bright);font-weight:300">TARGET</span></h1>
+    <p style="color:var(--mute);font-size:11px;margin:0 0 24px">غرفة التحكم — تسجيل الدخول</p>
+    <input id="loginUsername" placeholder="اسم المستخدم" style="width:100%;margin-bottom:10px;text-align:center">
+    <input id="loginPassword" type="password" placeholder="كلمة السر" style="width:100%;margin-bottom:16px;text-align:center" onkeydown="if(event.key==='Enter')doPanelLogin()">
+    <button class="gold" style="width:100%" onclick="doPanelLogin()">دخول</button>
+    <div id="loginError" style="color:var(--coral);font-size:11px;margin-top:12px"></div>
+  </div>
+</div>
+<div class="shell" id="appShell" style="display:none">
   <div class="sidebar" id="sidebarEl">
     <div id="sidebarToggle" onclick="toggleSidebar()" title="تصغير/تكبير القائمة">◀</div>
     <div class="pulse-rail" id="pulseRail"></div>
@@ -346,12 +376,14 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         <div class="tab" data-tab="tvscreen">📺 <span class="label">شاشة العرض</span></div>
         <div class="tab" data-tab="crmpage">👥 <span class="label">CRM العملاء</span></div>
         <div class="tab" data-tab="pendingqueue">⏳ <span class="label">قيد الموافقة</span></div>
+        <div class="tab" data-tab="reportspage">📊 <span class="label">التقارير</span></div>
         <div class="tab" data-tab="settings">⚙️ <span class="label">الإعدادات</span></div>
       </div>
     </div>
     <div class="operator-card">
       <div class="operator-avatar">م</div>
-      <div><div class="operator-name">مينا</div><div class="operator-role">مشغّل النظام · Owner</div></div>
+      <div style="flex:1"><div class="operator-name">مينا</div><div class="operator-role">مشغّل النظام · Owner</div></div>
+      <span style="cursor:pointer;color:var(--mute);font-size:14px" onclick="doPanelLogout()" title="تسجيل الخروج">🚪</span>
     </div>
   </div>
 
@@ -394,12 +426,27 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         </div>
       </div>
       <div id="searchInfo" style="display:none;font-size:12px;color:var(--gold);margin-bottom:8px"></div>
-      <div class="tbl-wrap"><table><thead><tr><th>رقم</th><th>المبلغ</th><th>المحفظة</th><th>الحساب المستقبِل</th><th>الرصيد</th><th>📨 SMS المطابقة</th><th>القرار</th><th>Maven</th><th>إجراء</th></tr></thead><tbody id="txBody"></tbody></table></div>
+      <div class="tbl-wrap mobile-cards"><table><thead><tr><th>رقم</th><th>المبلغ</th><th>المحفظة</th><th>الحساب المستقبِل</th><th>الرصيد</th><th>📨 SMS المطابقة</th><th>القرار</th><th>Maven</th><th>⏰ وقت الإنشاء</th><th>👤 اتقبلت بواسطة</th><th>إجراء</th></tr></thead><tbody id="txBody"></tbody></table></div>
     </div>
   </div>
 
   <!-- WALLETS -->
   <div id="wallets" class="tabpage hide">
+    <div class="panel">
+      <h2>🕰️ سجل تاريخي — أي محفظة كانت على أي جهاز/شريحة/بنك وقت معيّن</h2>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:12px">كل تغيير في ربط المحافظ بيتسجّل هنا تلقائياً — بيحل مشكلة "مين كان على ont2 الشهر اللي فات؟" نهائياً.</p>
+      <div class="ctrl" style="margin-bottom:12px">
+        <select id="wdhDeviceFilter" onchange="loadWalletHistory()">
+          <option value="">كل الأجهزة</option>
+          <option value="ont1">ONT1</option><option value="ont2">ONT2</option><option value="ont3">ONT3</option>
+          <option value="ont4">ONT4</option><option value="ont5">ONT5</option><option value="ont6">ONT6</option>
+        </select>
+        <button class="mini gold" onclick="loadWalletHistory()">🔄 تحديث</button>
+      </div>
+      <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table><thead><tr>
+        <th>الرقم</th><th>الجهاز</th><th>الشريحة</th><th>البنك</th><th>الوقت</th><th>ملاحظة</th>
+      </tr></thead><tbody id="wdhBody"></tbody></table></div>
+    </div>
     <div class="panel">
       <h2>📋 القائمة الرئيسية الشاملة — كل المحافظ المسجّلة (96 محفظة)</h2>
       <p style="color:var(--dim);font-size:11px;margin-bottom:12px">مستوردة من ملف Maven الرسمي — رقم المحفظة، الكود المرجعي، الحالة، الحدود، وربطها بأجهزتنا لو موجود.</p>
@@ -442,6 +489,30 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
 
   <!-- MAVEN WALLETS -->
   <div id="mavenwallets" class="tabpage hide">
+    <div class="panel">
+      <h2>🏦 قائمة بنوك Maven الحية — تغيير مباشر (<span id="mavenBanksCount">0</span>)</h2>
+      <div class="ctrl" style="margin-bottom:10px">
+        <button class="mini gold" onclick="loadMavenBanksLive()">🔄 تحديث</button>
+        <input id="bankSearchFilter" placeholder="بحث بالبنك أو التاجر..." oninput="renderMavenBanksList()">
+        <button class="mini" onclick="toggleSelectAllBanks()">☑️ تحديد الكل</button>
+        <span id="selectedBanksCount" style="color:var(--dim);font-size:11px">0 محدد</span>
+        <button class="mini red" style="background:rgba(217,178,106,.12);border-color:var(--gold);color:var(--gold)" onclick="bulkChangeSelectedBanks()">✏️ غيّر المحدد لرقم واحد</button>
+      </div>
+      <div class="tbl-wrap" style="margin-top:10px;max-height:500px;overflow:auto"><table><thead><tr>
+        <th style="width:30px"><input type="checkbox" id="selectAllBanksCheckbox" onchange="toggleSelectAllBanks()"></th>
+        <th>البنك</th><th>النوع/التاجر</th><th>الرقم الحالي</th><th>آخر فحص</th><th>إجراء</th>
+      </tr></thead><tbody id="mavenBanksBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>🎯 قائمة الاستبدال التلقائي عند 85%</h2>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:10px">أي رقم هنا جاهز يتفعّل أوتوماتيك لو محفظة نشطة على نفس البنك وصلت 85% من حدها.</p>
+      <div class="ctrl" style="margin-bottom:12px">
+        <input id="queuePhone" placeholder="رقم المحفظة">
+        <input id="queueBankId" placeholder="رقم البنك">
+        <button class="mini gold" onclick="addToSwitchQueue()">➕ أضف للقائمة</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>الرقم</th><th>البنك</th><th>الأولوية</th><th>الحالة</th></tr></thead><tbody id="switchQueueBody"></tbody></table></div>
+    </div>
     <div class="panel" id="switchPanel" style="border-color:var(--amber);display:none">
       <h2 style="margin:0 0 12px;color:var(--amber);font-size:15px">🔄 تبديل المحافظ — وصلت الحد</h2>
       <div id="switchBody"></div>
@@ -597,6 +668,7 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="toggleCrmMatch" onchange="saveAutomationStrategies()"> مطابقة CRM (اسم معروف → رقم)</label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="toggleNearMatch" onchange="saveAutomationStrategies()"> UNDERPAID/OVERPAID التلقائي (مبلغ قريب)</label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="toggleUniqueAmount" onchange="saveAutomationStrategies()"> اقتراح تفرّد المبلغ (15 دقيقة، بدون رقم/CRM) — مراجعة يدوية إجبارية دايماً</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="toggleWalletVerify" onchange="saveAutomationStrategies()"> 🔴 التحقق من محفظة الصورة (OCR) — رفض فوري لو الصورة بتوري محفظة مش من محافظنا</label>
       </div>
     </div>
     <div class="panel">
@@ -628,7 +700,11 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
     <div class="panel">
       <h2>💸 أتمتة الصرف — سجل المستلمين المعروفين</h2>
       <p style="color:var(--dim);font-size:11px;margin-bottom:12px">النظام بيجمّع تلقائي كل رقم استلم تحويل خارج من محافظنا (SMS + تقارير موثّقة)، ويحسب إجمالي وعدد المرات — عشان تعرف مين بياخد فلوس بشكل متكرر.</p>
-      <button class="mini gold" onclick="syncPayoutRecipients()">🔄 تحديث السجل الآن</button>
+      <div class="kpis" id="payoutKpis" style="margin-bottom:14px"></div>
+      <div class="ctrl">
+        <button class="mini gold" onclick="syncPayoutRecipients()">🔄 تحديث السجل الآن</button>
+        <button class="mini" style="background:rgba(244,104,95,.12);border-color:var(--coral);color:var(--coral)" onclick="exportPayoutPdf()">📄 تصدير PDF</button>
+      </div>
       <div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>
         <th>الرقم</th><th>الاسم</th><th>إجمالي المستلَم</th><th>عدد المرات</th><th>أول ظهور</th><th>آخر ظهور</th><th>التصنيف</th><th></th>
       </tr></thead><tbody id="payoutBody"></tbody></table></div>
@@ -654,6 +730,10 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         <h2 style="color:var(--gold);font-size:20px;letter-spacing:1px;margin:0">⚡ OnTarget — غرفة المراقبة الحية</h2>
         <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--mint);display:inline-block;animation:tvpulse 1.5s infinite"></span><span style="color:var(--mint);font-size:12px;font-weight:700">LIVE</span></div>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button id="btnUrgentRun" class="gold" style="font-size:13px;padding:10px 20px" onclick="runUrgentMode()">⚡ تشغيل عاجل — فحص فوري وأسرع</button>
+      </div>
+      <div id="tvKpiRow" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:16px;height:75vh">
         <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.3);border-radius:12px;padding:14px;overflow:hidden;display:flex;flex-direction:column">
           <h3 style="color:var(--blue);font-size:14px;margin:0 0 10px">📨 رسائل SMS حية</h3>
@@ -674,6 +754,14 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         <div class="tbl-wrap" style="max-height:320px;overflow:auto"><table><thead><tr>
           <th>رقم</th><th>المبلغ</th><th>المُرسِل</th><th>المحفظة</th><th>الحالة</th><th>الوقت</th><th>إجراء</th>
         </tr></thead><tbody id="tvRecentBody"></tbody></table></div>
+      </div>
+
+      <div style="margin-top:16px;background:rgba(244,104,95,.04);border:1px solid rgba(244,104,95,.25);border-radius:12px;padding:14px">
+        <h3 style="color:var(--coral);font-size:14px;margin:0 0 10px">💸 السحب الصادر — الكل (<span id="tvWdCount">0</span>) — تصحيح يدوي للمحفظة</h3>
+        <p style="color:var(--dim);font-size:10px;margin:0 0 10px">لحد ما نضبط الربط التلقائي بالكامل — أي رسالة سحب تقدر تحدد يدوي أنهي محفظة صدرت منها فعلياً.</p>
+        <div class="tbl-wrap" style="max-height:500px;overflow:auto"><table><thead><tr>
+          <th>المبلغ</th><th>الجهاز</th><th>استلمها</th><th>الوقت</th><th>المحفظة المؤكدة</th><th>إجراء</th>
+        </tr></thead><tbody id="tvWithdrawBody"></tbody></table></div>
       </div>
     </div>
   </div>
@@ -700,14 +788,50 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
       <h2>⏳ قيد الموافقة — المعلّقة بس (<span id="pqCount">0</span>)</h2>
       <p style="color:var(--dim);font-size:11px;margin-bottom:12px">كل المعاملات اللي محتاجة قرار بشري دلوقتي، من غير أي حاجة تانية تشتّت.</p>
       <button class="mini gold" onclick="loadPendingQueue()">🔄 تحديث</button>
-      <div class="tbl-wrap" style="max-height:70vh;overflow:auto;margin-top:12px"><table>
+      <div class="tbl-wrap mobile-cards" style="max-height:70vh;overflow:auto;margin-top:12px"><table>
         <thead><tr><th>رقم</th><th>المبلغ</th><th>المُرسِل</th><th>المحفظة</th><th>Maven</th><th>💡 الاقتراح</th><th>📨 SMS المطابقة</th><th>الوقت</th><th>إجراء</th></tr></thead>
         <tbody id="pendingQueueBody"></tbody>
       </table></div>
     </div>
   </div>
 
+  <!-- REPORTS -->
+  <div id="reportspage" class="tabpage hide">
+    <div class="panel" style="border-color:rgba(244,104,95,.4);background:rgba(244,104,95,.04)">
+      <h2 style="color:var(--coral)">🔴 خسارة الاشتباه — فلوس اتصرفت لأرقام طلعت بعدين مشتبهة/محظورة</h2>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:10px">⚠️ مهم: "إجمالي كل المدفوع" بيشمل مدفوعات موثّقة بدليل SMS حقيقي (شرعية) + مدفوعات بدون دليل. **الرقم الحقيقي المقلق هو "المدفوع بدون أي دليل" بس.**</p>
+      <div class="kpis" id="abuseLossKpis" style="margin-top:14px"></div>
+      <h3 style="margin-top:20px;color:var(--txt)">أعلى الحالات (مرتّبة بالمبلغ)</h3>
+      <div class="tbl-wrap mobile-cards" style="max-height:400px;overflow:auto;margin-top:10px"><table>
+        <thead><tr><th>الرقم</th><th>الحالة</th><th>عدد المقبول</th><th>إجمالي المصروف</th><th>مرفوض بدون دليل</th><th>إجراء</th></tr></thead>
+        <tbody id="abuseLossBody"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <h2>📊 ملخص عام</h2>
+      <div class="kpis" id="generalReportKpis" style="margin-top:14px"></div>
+    </div>
+    <div class="panel">
+      <h2>💰 أعلى المحافظ نشاطاً (آخر 7 أيام)</h2>
+      <div class="tbl-wrap"><table><thead><tr><th>المحفظة</th><th>عدد المعاملات</th><th>مقبولة</th><th>مرفوضة</th><th>إجمالي المقبول</th></tr></thead><tbody id="topWalletsBody"></tbody></table></div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->  <div id="settings" class="tabpage hide">
+    <div class="panel" id="userMgmtPanel">
+      <h2>🔐 المستخدمين والصلاحيات</h2>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:12px">4 أدوار: Owner (كل حاجة)، Admin (كل حاجة ما عدا الإعدادات)، Operator (تشغيل يومي)، Viewer (عرض بس).</p>
+      <div class="ctrl" style="margin-bottom:14px">
+        <input id="newUserUsername" placeholder="اسم مستخدم جديد">
+        <input id="newUserPassword" placeholder="كلمة سر" type="password">
+        <input id="newUserDisplay" placeholder="الاسم المعروض">
+        <select id="newUserRole"><option value="viewer">Viewer</option><option value="operator">Operator</option><option value="admin">Admin</option><option value="owner">Owner</option></select>
+        <button class="mini gold" onclick="createPanelUser()">➕ إضافة مستخدم</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>المستخدم</th><th>الاسم</th><th>الدور</th><th>آخر دخول</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+      <h3 style="margin-top:20px">📋 مصفوفة الصلاحيات (Admin/Operator/Viewer)</h3>
+      <div class="tbl-wrap" style="margin-top:8px"><table id="permMatrixTable"><thead><tr><th>الصفحة</th><th>Admin عرض</th><th>Admin تعديل</th><th>Operator عرض</th><th>Operator تعديل</th><th>Viewer عرض</th></tr></thead><tbody id="permMatrixBody"></tbody></table></div>
+    </div>
     <div class="panel">
       <h2>⚙️ إعدادات المستخدم والاتصال بـ Maven</h2>
       <p style="color:var(--dim);font-size:12px;margin-bottom:14px">تغيير اسم المستخدم أو الرقم أو الباسورد. التغيير مباشر وفوري.</p>
@@ -972,24 +1096,83 @@ const H={"Content-Type":"application/json","apikey":KEY,"Authorization":"Bearer 
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500)}
 async function rpc(fn,args={}){const r=await fetch(`${SUPA}/rest/v1/rpc/${fn}`,{method:"POST",headers:H,body:JSON.stringify(args)});if(!r.ok){console.error(fn,await r.text());return null}return r.json()}
 
+// 🔐 نظام الدخول والصلاحيات
+window._panelUser = null;
+window._panelPerms = {};
+
+async function doPanelLogin(){
+  const u = document.getElementById("loginUsername").value.trim();
+  const p = document.getElementById("loginPassword").value;
+  document.getElementById("loginError").textContent = "";
+  if(!u || !p){document.getElementById("loginError").textContent = "من فضلك اكتب اسم المستخدم وكلمة السر";return}
+  const r = await rpc("panel_login", {p_username: u, p_password: p});
+  if(!r || !r.ok){document.getElementById("loginError").textContent = r?.error || "فشل تسجيل الدخول";return}
+  localStorage.setItem("ot_session_token", r.token);
+  await enterApp(r);
+}
+
+async function checkExistingSession(){
+  const token = localStorage.getItem("ot_session_token");
+  if(!token){return false}
+  const r = await rpc("panel_check_session", {p_token: token});
+  if(r && r.ok){await enterApp(r); return true}
+  localStorage.removeItem("ot_session_token");
+  return false;
+}
+
+async function enterApp(userInfo){
+  window._panelUser = userInfo;
+  window._panelPerms = await rpc("panel_permissions_for_role", {p_role: userInfo.role}) || {};
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appShell").style.display = "flex";
+  applyPermissions();
+  const opName = document.querySelector(".operator-name");
+  if(opName) opName.textContent = userInfo.display_name || userInfo.username;
+  const opRole = document.querySelector(".operator-role");
+  if(opRole) opRole.textContent = ({owner:'Owner',admin:'Admin',operator:'مشغّل',viewer:'مشاهدة بس'})[userInfo.role] || userInfo.role;
+  refresh();setInterval(loadStats,5000);setInterval(loadTx,7000);
+}
+
+function panelCanEdit(tabKey){
+  if(!window._panelUser) return false;
+  if(window._panelUser.role === 'owner') return true;
+  return !!(window._panelPerms[tabKey]?.edit);
+}
+
+function applyPermissions(){
+  if(window._panelUser?.role === 'owner') return; // Owner يشوف ويعدّل كل حاجة
+  document.querySelectorAll(".tab[data-tab]").forEach(tabEl=>{
+    const key = tabEl.dataset.tab;
+    const perm = window._panelPerms[key];
+    if(!perm || !perm.view){ tabEl.style.display = "none"; }
+  });
+}
+
+function doPanelLogout(){
+  localStorage.removeItem("ot_session_token");
+  location.reload();
+}
+
+
 // Tabs
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".tabpage").forEach(x=>x.classList.add("hide"));
   t.classList.add("active");document.getElementById(t.dataset.tab).classList.remove("hide");
-  if(t.dataset.tab==='wallets'){loadWallets();loadWalletMasterList()}
+  if(t.dataset.tab==='wallets'){loadWallets();loadWalletMasterList();loadWalletHistory()}
   if(t.dataset.tab==='merchants'){loadRules();loadAutomationStrategies()}
-  if(t.dataset.tab==='payout')loadPayoutRecipients();
+  if(t.dataset.tab==='payout'){loadPayoutRecipients();loadPayoutKpis()}
   if(t.dataset.tab==='abuseflags')loadAbuseFlags();
   if(t.dataset.tab==='tvscreen'){loadTvScreen();if(!window._tvInterval)window._tvInterval=setInterval(loadTvScreen,4000)}else{if(window._tvInterval){clearInterval(window._tvInterval);window._tvInterval=null}}
   if(t.dataset.tab==='crmpage')loadCrmList();
   if(t.dataset.tab==='pendingqueue')loadPendingQueue();
+  if(t.dataset.tab==='reportspage')loadReportsPage();
   if(t.dataset.tab==='opensms')loadOpenSms();
   if(t.dataset.tab==='smslive'){loadSmsLive();startSmsLiveRefresh();}else{stopSmsLiveRefresh();}
-  if(t.dataset.tab==='mavenwallets'){loadMavenWallets();loadActionLog();}
+  if(t.dataset.tab==='mavenwallets'){loadMavenWallets();loadActionLog();loadMavenBanksLive();loadSwitchQueue();}
   if(t.dataset.tab==='blacklist'){loadBlacklist();loadLocBlacklist();loadSuspicious();}
   if(t.dataset.tab==='complaints')loadComplaints();
-  if(t.dataset.tab==='settings')loadConfig();
+  if(t.dataset.tab==='settings'){loadPanelUsers();loadPermMatrix();loadConfig()}
   if(t.dataset.tab==='alldata')loadAllData();
   if(t.dataset.tab==='walletflow')loadWalletFlow();
   if(t.dataset.tab==='walletpools')loadWalletPools();
@@ -1030,8 +1213,12 @@ function renderTxRows(rows, emptyMsg){
     const investigateBtn=(t.maven_status==='DECLINED')?` <button class="mini amber" style="background:rgba(245,158,11,.12);border-color:var(--amber);color:var(--amber)" onclick="investigateAndApprove(${t.tx_id})">🔍 فحص ومحاولة قبول</button>`:'';
     const searchBtn=` <button class="mini" style="background:rgba(139,92,246,.12);border-color:#8b5cf6;color:#8b5cf6" onclick="openSmsSearch(${t.tx_id})">🔎 دور على رسالة</button>`;
     const photoBtn=` <button class="mini gold" onclick="showTxProofImage(${t.tx_id})">📷 صورة</button>`;
-    return `<tr><td style="font-family:monospace;color:var(--dim)">${t.tx_id}</td><td style="font-weight:700">${t.amount} ج</td><td>${senderInfo}</td><td>${toAcct}</td><td style="color:var(--dim);font-size:12px">${bal}</td><td>${smsCol}</td><td><span class="pill ${dec[1]}">${dec[0]}</span></td><td style="color:var(--dim)">${t.maven_status||'—'}</td><td>${act} <button class="mini" onclick="editTx(${t.tx_id})">✏️ تعديل</button>${investigateBtn}${searchBtn}${photoBtn}</td></tr>`;
-  }).join(""):`<tr><td colspan="9" style="text-align:center;color:var(--dim);padding:20px">${emptyMsg||'لا توجد معاملات'}</td></tr>`;
+    const underpaidFixBtn=(t.maven_status==='UNDERPAID')?` <button class="mini" style="background:rgba(91,158,232,.12);border-color:var(--sky);color:var(--sky)" onclick="fixUnderpaidAmount(${t.tx_id},'${t.sms_amount||''}')">✏️ صحّح المبلغ</button>`:'';
+    const createdTime = t.tx_created_at ? new Date(t.tx_created_at).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '<span style="color:var(--dim)">—</span>';
+    const approvedByMap = {system:'⚙️ النظام تلقائي', batch_resolve_nameonly:'🤖 مطابقة اسم+رصيد', batch_resolve_dated:'🤖 مطابقة اسم+رصيد', sync_fix:'🔧 تصحيح مزامنة', maven_reconcile_auto:'🔄 مطابقة دورية', maven_direct_sync:'🔄 مطابقة مباشرة'};
+    const approvedBy = t.decided_by ? (approvedByMap[t.decided_by] || t.decided_by) : (t.decision==='pending_review' ? '<span style="color:var(--dim)">—</span>' : '<span style="color:var(--dim)">غير مسجّل</span>');
+    return `<tr><td data-label="رقم" style="font-family:monospace;color:var(--dim)">${t.tx_id}</td><td data-label="المبلغ" style="font-weight:700">${t.amount} ج</td><td data-label="المُرسِل">${senderInfo}</td><td data-label="المحفظة">${toAcct}</td><td data-label="الرصيد" style="color:var(--dim);font-size:12px">${bal}</td><td data-label="SMS">${smsCol}</td><td data-label="القرار"><span class="pill ${dec[1]}">${dec[0]}</span></td><td data-label="Maven" style="color:var(--dim)">${t.maven_status||'—'}</td><td data-label="وقت الإنشاء" style="color:var(--dim);font-size:10px">${createdTime}</td><td data-label="اتقبلت بواسطة" style="font-size:10px">${approvedBy}</td><td data-label="إجراء">${act} <button class="mini" onclick="editTx(${t.tx_id})">✏️ تعديل</button>${investigateBtn}${searchBtn}${photoBtn}${underpaidFixBtn}</td></tr>`;
+  }).join(""):`<tr><td colspan="11" style="text-align:center;color:var(--dim);padding:20px">${emptyMsg||'لا توجد معاملات'}</td></tr>`;
 }
 async function loadTx(){
   const rows=await rpc("dashboard_recent",{p_limit:25});if(!rows)return;
@@ -1231,6 +1418,46 @@ document.getElementById("btnLimit").onclick=async()=>{const v=+document.getEleme
 document.getElementById("btnRun").onclick=async()=>{await fetch(`${SUPA}/functions/v1/maven-http-worker`,{method:"POST",headers:H,body:JSON.stringify({limit:40})});toast("جارٍ التنفيذ");setTimeout(loadStats,3000)};
 
 // WALLETS
+async function loadReportsPage(){
+  // 🔴 خسارة الاشتباه
+  const loss = await rpc("abuse_financial_loss", {});
+  if(loss){
+    document.getElementById("abuseLossKpis").innerHTML = `
+      <div class="kpi a"><div class="lbl">إجمالي كل المدفوع (موثّق + غير موثّق)</div><div class="num">${(+loss.total_paid_to_flagged).toLocaleString()} ج</div></div>
+      <div class="kpi r"><div class="lbl">🔴 المدفوع بدون أي دليل خالص</div><div class="num">${(+loss.paid_without_evidence_to_flagged).toLocaleString()} ج</div></div>
+      <div class="kpi r"><div class="lbl">عدد معاملات بدون دليل</div><div class="num">${loss.count_paid_without_evidence}</div></div>
+      <div class="kpi r"><div class="lbl">من محظورين فعلياً (Blacklist)</div><div class="num">${(+loss.total_paid_to_blacklisted_only).toLocaleString()} ج</div></div>
+    `;
+    document.getElementById("abuseLossBody").innerHTML = (loss.by_sender||[]).map(s=>{
+      const statusPill = s.status==='blacklisted' ? '<span class="pill r">محظور</span>' : '<span class="pill a">مشتبه</span>';
+      return `<tr><td style="font-family:monospace;font-weight:700;cursor:pointer;color:var(--sky);text-decoration:underline" onclick="openSenderHistory('${s.sender_number}')">${s.sender_number}</td>
+        <td>${statusPill}</td><td>${s.paid_count}</td><td style="font-weight:700;color:var(--coral)">${(+s.paid_total).toLocaleString()} ج</td>
+        <td style="color:var(--dim)">${s.declined_no_evidence_count}</td>
+        <td><button class="mini red" onclick="document.querySelector('.tab[data-tab=abuseflags]').click()">راجع في المشتبهين</button></td></tr>`;
+    }).join("") || '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:12px">مفيش حالات</td></tr>';
+  }
+
+  // 📊 ملخص عام
+  const gen = await rpc("general_report_summary", {});
+  if(gen){
+    document.getElementById("generalReportKpis").innerHTML = `
+      <div class="kpi"><div class="lbl">إجمالي المعاملات</div><div class="num">${(+gen.total_tx_all_time).toLocaleString()}</div></div>
+      <div class="kpi g"><div class="lbl">إجمالي المقبول</div><div class="num" style="font-size:16px">${(+gen.total_paid_all_time).toLocaleString()} ج</div></div>
+      <div class="kpi"><div class="lbl">نسبة القبول</div><div class="num">${gen.approval_rate_pct||0}%</div></div>
+      <div class="kpi b"><div class="lbl">عملاء CRM</div><div class="num">${gen.total_crm_clients}</div></div>
+      <div class="kpi r"><div class="lbl">مشتبهين حالياً</div><div class="num">${gen.total_flagged_users}</div></div>
+      <div class="kpi a"><div class="lbl">معلّق دلوقتي</div><div class="num">${gen.pending_review_now}</div></div>
+    `;
+  }
+
+  // 💰 أعلى المحافظ
+  const tw = await rpc("top_wallets_report", {p_days: 7});
+  document.getElementById("topWalletsBody").innerHTML = (tw||[]).map(w=>`
+    <tr><td style="font-family:monospace;font-weight:700">${w.wallet||'—'}</td><td>${w.total_tx}</td>
+      <td style="color:var(--mint)">${w.paid_count}</td><td style="color:var(--coral)">${w.declined_count}</td>
+      <td style="font-weight:700">${(+(w.paid_total||0)).toLocaleString()} ج</td></tr>`).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:12px">مفيش بيانات</td></tr>';
+}
+
 async function loadPendingQueue(){
   const rows = await rpc("pending_queue_list", {p_limit: 200});
   document.getElementById("pqCount").textContent = rows ? rows.length : 0;
@@ -1239,14 +1466,63 @@ async function loadPendingQueue(){
     const senderInfo = t.sender_number ? `<span style="font-family:monospace;font-size:11px">${t.sender_number}</span>${t.sender_name?` <span style="color:var(--dim);font-size:10px">(${t.sender_name})</span>`:''}` : '<span style="color:var(--dim)">—</span>';
     const advice = t.match_score ? `<span style="color:var(--mint);font-weight:700;font-size:11px">${t.match_score}%</span> <div style="font-size:9px;color:var(--dim);max-width:200px">${(t.match_reasons||[]).join(' · ')}</div>` : '<span style="color:var(--dim);font-size:10px">مفيش اقتراح</span>';
     const smsMatch = t.sms_id ? `<div style="font-size:11px"><span style="color:var(--mint);font-weight:700">✅ #${t.sms_id}</span><br><span style="font-family:monospace;font-size:10px;color:var(--dim)">${t.sms_sender_number||t.sms_sender_name||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${t.sms_amount||''} ج · ${t.sms_time?new Date(t.sms_time).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):''}</span></div>` : '<span style="color:var(--dim);font-size:11px">— بدون رسالة</span>';
-    return `<tr><td style="font-family:monospace;color:var(--dim)">${t.tx_id}</td><td style="font-weight:700">${t.amount} ج</td>
-      <td>${senderInfo}</td><td style="font-family:monospace;font-size:11px">${t.to_account_number||'—'}</td>
-      <td><span class="pill a">${t.maven_status||'—'}</span></td>
-      <td>${advice}</td>
-      <td>${smsMatch}</td>
-      <td style="color:var(--dim);font-size:10px">${tm}</td>
-      <td><button class="mini green" onclick="act(${t.tx_id},'approve')">✅</button> <button class="mini red" onclick="act(${t.tx_id},'decline')">❌</button> <button class="mini gold" onclick="showTxProofImage(${t.tx_id})">📷</button> <button class="mini" onclick="openSmsSearch(${t.tx_id})">🔎</button></td></tr>`;
+    return `<tr><td data-label="رقم" style="font-family:monospace;color:var(--dim)">${t.tx_id}</td><td data-label="المبلغ" style="font-weight:700">${t.amount} ج</td>
+      <td data-label="المُرسِل">${senderInfo}</td><td data-label="المحفظة" style="font-family:monospace;font-size:11px">${t.to_account_number||'—'}</td>
+      <td data-label="Maven"><span class="pill a">${t.maven_status||'—'}</span></td>
+      <td data-label="الاقتراح">${advice}</td>
+      <td data-label="SMS">${smsMatch}</td>
+      <td data-label="الوقت" style="color:var(--dim);font-size:10px">${tm}</td>
+      <td data-label="إجراء"><button class="mini green" onclick="act(${t.tx_id},'approve')">✅</button> <button class="mini red" onclick="act(${t.tx_id},'decline')">❌</button> <button class="mini gold" onclick="showTxProofImage(${t.tx_id})">📷</button> <button class="mini" onclick="openSmsSearch(${t.tx_id})">🔎</button></td></tr>`;
   }).join("") : `<tr><td colspan="9" style="text-align:center;color:var(--dim);padding:20px">مفيش معاملات معلّقة — كله متعالج! 🎉</td></tr>`;
+}
+
+const TAB_LABELS = {monitor:'المراقبة',smslive:'SMS مباشر',opensms:'رسائل مفتوحة',complaints:'الشكاوى',imagereview:'مراجعة صور',alldata:'كل البيانات',wallets:'المحافظ',mavenwallets:'محافظ Maven',walletflow:'حركة المحفظة',walletpools:'مجمّعات المحافظ',blacklist:'القائمة السوداء',merchants:'قواعد الأتمتة',payout:'أتمتة الصرف',abuseflags:'مشتبهين',tvscreen:'شاشة العرض',crmpage:'CRM العملاء',pendingqueue:'قيد الموافقة',settings:'الإعدادات'};
+
+async function loadPanelUsers(){
+  const rows = await rpc("panel_users_list", {});
+  document.getElementById("usersBody").innerHTML = (rows||[]).map(u=>{
+    const roleColor = {owner:'var(--gold)',admin:'var(--sky)',operator:'var(--mint)',viewer:'var(--dim)'}[u.role]||'var(--dim)';
+    return `<tr><td style="font-family:monospace;font-weight:700">${u.username}</td><td>${u.display_name||'—'}</td>
+      <td><span style="color:${roleColor};font-weight:700;font-size:11px">${u.role}</span></td>
+      <td style="color:var(--dim);font-size:10px">${u.last_login_at?new Date(u.last_login_at).toLocaleDateString('ar-EG'):'لسه ماسجّلش'}</td>
+      <td><span class="pill ${u.active?'g':'r'}">${u.active?'مفعّل':'موقوف'}</span></td>
+      <td><button class="mini ${u.active?'red':'green'}" onclick="togglePanelUser('${u.id}',${!u.active})">${u.active?'إيقاف':'تفعيل'}</button></td></tr>`;
+  }).join("") || '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:12px">مفيش مستخدمين</td></tr>';
+}
+async function createPanelUser(){
+  const username = document.getElementById("newUserUsername").value.trim();
+  const password = document.getElementById("newUserPassword").value;
+  const display = document.getElementById("newUserDisplay").value.trim();
+  const role = document.getElementById("newUserRole").value;
+  if(!username || !password){toast("محتاج اسم مستخدم وكلمة سر");return}
+  const r = await rpc("panel_user_create", {p_username: username, p_password: password, p_display_name: display, p_role: role});
+  if(r?.ok){toast("✅ اتضاف المستخدم");document.getElementById("newUserUsername").value='';document.getElementById("newUserPassword").value='';document.getElementById("newUserDisplay").value='';loadPanelUsers()}
+  else toast(r?.error||"فشل");
+}
+async function togglePanelUser(id, active){
+  await rpc("panel_user_toggle", {p_id: id, p_active: active});
+  toast(active?"✅ اتفعّل":"⏸️ اتوقف");
+  loadPanelUsers();
+}
+async function loadPermMatrix(){
+  const rows = await rpc("panel_permissions_matrix", {});
+  document.getElementById("permMatrixBody").innerHTML = (rows||[]).map(r=>{
+    const label = TAB_LABELS[r.tab_key] || r.tab_key;
+    const mk = (role, field) => `<input type="checkbox" ${r.roles[role]?.[field]?'checked':''} onchange="updatePermCell('${r.tab_key}','${role}',this)">`;
+    return `<tr><td style="font-size:11px">${label}</td>
+      <td style="text-align:center">${mk('admin','view')}</td><td style="text-align:center">${mk('admin','edit')}</td>
+      <td style="text-align:center">${mk('operator','view')}</td><td style="text-align:center">${mk('operator','edit')}</td>
+      <td style="text-align:center">${mk('viewer','view')}</td></tr>`;
+  }).join("");
+}
+async function updatePermCell(tabKey, role, checkbox){
+  const row = checkbox.closest("tr");
+  const cells = row.querySelectorAll("input[type=checkbox]");
+  const idx = role==='admin' ? [0,1] : role==='operator' ? [2,3] : [4,4];
+  const view = role==='viewer' ? cells[4].checked : cells[idx[0]].checked;
+  const edit = role==='viewer' ? false : cells[idx[1]].checked;
+  await rpc("panel_permission_update", {p_role: role, p_tab_key: tabKey, p_can_view: view, p_can_edit: edit});
+  toast("✅ اتحفظت الصلاحية");
 }
 
 async function loadCrmList(){
@@ -1290,6 +1566,17 @@ async function runServerOcr(txId){
   }catch(e){
     toast("❌ فشل الاتصال بخدمة OCR");
   }
+}
+
+async function loadWalletHistory(){
+  const device = document.getElementById("wdhDeviceFilter")?.value || null;
+  const rows = await rpc("wallet_device_history_list", {p_device: device, p_wallet: null, p_limit: 150});
+  document.getElementById("wdhBody").innerHTML = (rows && rows.length) ? rows.map(h=>{
+    const tm = new Date(h.changed_at).toLocaleString('ar-EG',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<tr><td style="font-family:monospace;font-weight:700">${h.wallet_number}</td><td>${h.device?h.device.toUpperCase():'—'}</td>
+      <td>${h.sim_slot??'—'}</td><td>${h.maven_bank_id||'—'}</td>
+      <td style="color:var(--dim);font-size:11px">${tm}</td><td style="font-size:10px;color:var(--dim)">${h.note||''}</td></tr>`;
+  }).join("") : '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:12px">مفيش سجل بعد</td></tr>';
 }
 
 async function loadWalletMasterList(){
@@ -1444,6 +1731,77 @@ async function mavenReplaceNumber(bankId,currentNumber){
 }
 
 // MAVEN WALLETS
+async function loadMavenBanksLive(){
+  const rows = await rpc("maven_banks_live_list", {});
+  window._mavenBanksCache = rows || [];
+  renderMavenBanksList();
+}
+function renderMavenBanksList(){
+  const rows = window._mavenBanksCache || [];
+  const search = (document.getElementById("bankSearchFilter")?.value || '').trim().toLowerCase();
+  const filtered = search ? rows.filter(b => `${b.bank_id} ${b.payment_type||''} ${b.account_name||''} ${b.phone_number||''}`.toLowerCase().includes(search)) : rows;
+  document.getElementById("mavenBanksCount").textContent = filtered.length;
+  document.getElementById("mavenBanksBody").innerHTML = filtered.length ? filtered.map(b=>{
+    const tm = new Date(b.last_checked).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<tr><td><input type="checkbox" class="bankSelectCheckbox" value="${b.bank_id}" onchange="updateSelectedBanksCount()"></td>
+      <td style="font-weight:700">${b.bank_id}</td><td style="font-size:11px">${b.account_name||b.payment_type||'—'}</td>
+      <td style="font-family:monospace;color:var(--mint)">${b.phone_number||'—'}</td>
+      <td style="color:var(--dim);font-size:10px">${tm}</td>
+      <td><button class="mini" onclick="changeMavenBank('${b.bank_id}')">✏️ غيّر</button></td></tr>`;
+  }).join("") : '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:12px">مفيش بنوك مطابقة</td></tr>';
+  updateSelectedBanksCount();
+}
+function toggleSelectAllBanks(){
+  const master = document.getElementById("selectAllBanksCheckbox");
+  const boxes = document.querySelectorAll(".bankSelectCheckbox");
+  const allChecked = Array.from(boxes).every(b=>b.checked);
+  boxes.forEach(b=>b.checked = !allChecked);
+  if(master) master.checked = !allChecked;
+  updateSelectedBanksCount();
+}
+function updateSelectedBanksCount(){
+  const n = document.querySelectorAll(".bankSelectCheckbox:checked").length;
+  document.getElementById("selectedBanksCount").textContent = `${n} محدد`;
+}
+async function bulkChangeSelectedBanks(){
+  const selected = Array.from(document.querySelectorAll(".bankSelectCheckbox:checked")).map(b=>b.value);
+  if(!selected.length){toast("محدّدش أي بنك");return}
+  const newNum = prompt(`رقم واحد لكل الـ${selected.length} بنك المحددين:`, "");
+  if(!newNum || newNum.length < 10){toast("رقم غير صالح");return}
+  if(!confirm(`متأكد تغيّر ${selected.length} بنك لرقم ${newNum}؟`)) return;
+  toast("جارٍ التنفيذ على Maven...");
+  const r = await rpc("maven_bank_bulk_change", {p_bank_ids: selected, p_new_number: newNum.trim()});
+  toast(r?.ok ? `✅ اتنفّذ على ${selected.length} بنك` : "❌ فشل");
+  setTimeout(loadMavenBanksLive, 15000);
+}
+async function changeMavenBank(bankId){
+  const newNum = prompt(`رقم جديد للبنك ${bankId}:`, "");
+  if(!newNum || newNum.length < 10){toast("رقم غير صالح");return}
+  toast("جارٍ التنفيذ على Maven...");
+  const r = await rpc("maven_bank_change_number", {p_bank_id: bankId, p_new_number: newNum.trim()});
+  if(!r?.ok){toast("❌ فشل الإرسال");return}
+  await new Promise(res=>setTimeout(res,12000));
+  const c = await rpc("maven_bank_change_collect", {p_req_id: r.req_id, p_bank_id: bankId, p_new_number: newNum.trim()});
+  toast(c?.ok ? `✅ اتغيّر بنك ${bankId} لـ${newNum}` : "❌ فشل التأكيد");
+  loadMavenBanksLive();
+}
+async function loadSwitchQueue(){
+  const rows = await rpc("wallet_switch_queue_list", {});
+  document.getElementById("switchQueueBody").innerHTML = (rows && rows.length) ? rows.map(q=>
+    `<tr><td style="font-family:monospace">${q.phone_number}</td><td>${q.bank_id||'—'}</td><td>${q.priority}</td>
+      <td><span class="pill ${q.in_use?'a':'g'}">${q.disabled?'موقوف':q.in_use?'مستخدَم':'جاهز'}</span></td></tr>`
+  ).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:12px">القائمة فاضية</td></tr>';
+}
+async function addToSwitchQueue(){
+  const phone = document.getElementById("queuePhone").value.trim();
+  const bank = document.getElementById("queueBankId").value.trim();
+  if(!phone || !bank){toast("محتاج رقم وبنك");return}
+  await rpc("wallet_switch_queue_add", {p_phone: phone, p_bank_id: bank, p_priority: 10});
+  toast("✅ اتضاف للقائمة");
+  document.getElementById("queuePhone").value='';document.getElementById("queueBankId").value='';
+  loadSwitchQueue();
+}
+
 async function loadMavenWallets(){
   const w=await rpc("maven_wallet_ledger");if(w){
   document.getElementById("mavenWalletBody").innerHTML=w.length?w.map(x=>{
@@ -1792,13 +2150,15 @@ async function loadAutomationStrategies(){
     document.getElementById("toggleCrmMatch").checked = !!s.use_crm_name_matching;
     document.getElementById("toggleNearMatch").checked = !!s.use_near_amount_matching;
     document.getElementById("toggleUniqueAmount").checked = !!s.use_unique_amount_matching;
+    document.getElementById("toggleWalletVerify").checked = s.use_wallet_verify_ocr !== false;
   }
 }
 async function saveAutomationStrategies(){
   const crm = document.getElementById("toggleCrmMatch").checked;
   const near = document.getElementById("toggleNearMatch").checked;
   const uniq = document.getElementById("toggleUniqueAmount").checked;
-  await rpc("automation_strategies_set", {p_crm: crm, p_near: near, p_unique: uniq});
+  const walletVerify = document.getElementById("toggleWalletVerify").checked;
+  await rpc("automation_strategies_set", {p_crm: crm, p_near: near, p_unique: uniq, p_wallet_verify: walletVerify});
   toast("✅ اتحفظت الإعدادات");
 }
 
@@ -1838,6 +2198,49 @@ document.getElementById("btnCreateFromTpl").onclick=async()=>{
 };
 
 // PAYOUT AUTOMATION
+async function loadPayoutKpis(){
+  const k = await rpc("payout_kpi_summary", {});
+  if(!k) return;
+  document.getElementById("payoutKpis").innerHTML = `
+    <div class="kpi"><div class="lbl">عدد المستلمين</div><div class="num">${k.total_recipients}</div></div>
+    <div class="kpi"><div class="lbl">إجمالي التحويلات</div><div class="num">${k.total_transfers}</div></div>
+    <div class="kpi r"><div class="lbl">إجمالي المصروف</div><div class="num" style="font-size:16px">${(+k.total_amount).toLocaleString()} ج</div></div>
+    <div class="kpi b"><div class="lbl">محافظ مصدر مختلفة</div><div class="num">${k.unique_source_wallets}</div></div>
+    <div class="kpi a"><div class="lbl">هذا الشهر</div><div class="num" style="font-size:16px">${(+k.this_month_amount).toLocaleString()} ج</div></div>
+    <div class="kpi ${k.suspicious_recipients>0?'r':'g'}"><div class="lbl">مستلمين مشتبهين</div><div class="num">${k.suspicious_recipients}</div></div>
+  `;
+}
+
+// 📄 تصدير تقرير الصرف كـPDF عبر طباعة المتصفح (بدون أي مكتبات خارجية)
+function exportPayoutPdf(){
+  const kpisHtml = document.getElementById("payoutKpis").innerHTML;
+  const tableHtml = document.getElementById("payoutBody").parentElement.outerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير أتمتة الصرف — OnTarget</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#111}
+      h1{color:#111;border-bottom:2px solid #d9b26a;padding-bottom:10px}
+      .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}
+      .kpi{border:1px solid #ccc;border-radius:8px;padding:14px;text-align:center}
+      .lbl{font-size:11px;color:#666}
+      .num{font-size:20px;font-weight:bold;margin-top:6px}
+      table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}
+      th,td{border:1px solid #ccc;padding:8px;text-align:right}
+      th{background:#f0f0f0}
+      .footer{margin-top:30px;font-size:10px;color:#888;text-align:center}
+    </style></head><body>
+    <h1>💸 تقرير أتمتة الصرف — OnTarget</h1>
+    <p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p>
+    <div class="kpis">${kpisHtml}</div>
+    ${tableHtml}
+    <div class="footer">تم توليد التقرير تلقائياً من لوحة تحكم OnTarget</div>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(()=>win.print(), 400);
+}
+
 async function loadPayoutRecipients(){
   const list = await rpc("payout_recipients_list");
   if(!list){document.getElementById("payoutBody").innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:16px">خطأ في التحميل</td></tr>';return}
@@ -1881,9 +2284,51 @@ async function flagPayoutRecipient(id){
 window._tvSeenSms = new Set();
 window._tvSeenTrx = new Set();
 window._tvSeenMatch = new Set();
+// ⚡ تشغيل عاجل — دورة كاملة فورية بدفعات أكبر، للحالات المستعجلة
+async function runUrgentMode(){
+  const btn = document.getElementById("btnUrgentRun");
+  btn.disabled = true; btn.textContent = "⏳ جارٍ التشغيل العاجل...";
+  toast("جارٍ التشغيل العاجل — هياخد شوية ثواني...");
+  try{
+    const r = await rpc("urgent_run_now", {});
+    const bt = r?.batch_balance_timing?.resolved || 0;
+    const crm = r?.batch_crm?.resolved || 0;
+    toast(`✅ تم — ${bt} اتحلّت بالتوقيت/الرصيد، ${crm} بـCRM`);
+  }catch(e){
+    toast("❌ فشل التشغيل العاجل");
+  }
+  btn.disabled = false; btn.textContent = "⚡ تشغيل عاجل — فحص فوري وأسرع";
+  loadTvScreen();
+}
+
+// ✏️ تصحيح مبلغ UNDERPAID ليطابق اللي جه فعلياً في رسالة SMS
+async function fixUnderpaidAmount(txId, smsAmount){
+  const suggested = smsAmount || '';
+  const newAmount = prompt(`المبلغ الصح (زي ما جه في رسالة SMS):`, suggested);
+  if(!newAmount || isNaN(+newAmount)){toast("مبلغ غير صالح");return}
+  const r = await rpc("tx_correct_underpaid_amount", {p_tx_id: txId, p_new_amount: +newAmount});
+  if(r?.ok){
+    toast(`✅ اتصحّح من ${r.old_amount} لـ${r.new_amount} ج`);
+    refreshTxView();
+  } else toast("❌ فشل التصحيح");
+}
+
 async function loadTvScreen(){
   const data = await rpc("tv_live_feed", {});
   if(!data) return;
+
+  // 🆕 صف KPIs فوق الشاشة
+  const kpi = await rpc("tv_kpi_summary", {});
+  const kpiRow = document.getElementById("tvKpiRow");
+  if(kpiRow && kpi){
+    kpiRow.innerHTML = `
+      <div class="kpi g"><div class="lbl">مقبولة النهاردة</div><div class="num">${kpi.paid_today_count}</div></div>
+      <div class="kpi g"><div class="lbl">إجمالي المقبول</div><div class="num" style="font-size:16px">${(+kpi.paid_today_amount).toLocaleString()} ج</div></div>
+      <div class="kpi r"><div class="lbl">مرفوضة النهاردة</div><div class="num">${kpi.declined_today_count}</div></div>
+      <div class="kpi a"><div class="lbl">معلّقة الآن</div><div class="num">${kpi.pending_count}</div></div>
+      <div class="kpi ${kpi.automation_healthy?'g':'r'}"><div class="lbl">صحة الأتمتة</div><div class="num" style="font-size:16px">${kpi.automation_healthy?'✅ سليمة':'🔴 متأخرة'}</div></div>
+    `;
+  }
 
   const smsCol = document.getElementById("tvSmsCol");
   if(smsCol){
@@ -1946,6 +2391,23 @@ async function loadTvScreen(){
         <td><span class="pill ${tone}">${t.maven_status||'—'}</span></td><td style="color:var(--dim);font-size:10px">${tm}</td>
         <td>${actions}</td></tr>`;
     }).join("") : `<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:12px">لا توجد معاملات</td></tr>`;
+  }
+
+  // 💸 جدول السحب — تصحيح يدوي للمحفظة
+  const wdBody = document.getElementById("tvWithdrawBody");
+  if(wdBody){
+    const wdRows = await rpc("wd_unconfirmed_list", {p_limit: 200});
+    document.getElementById("tvWdCount").textContent = wdRows ? wdRows.length : 0;
+    wdBody.innerHTML = (wdRows && wdRows.length) ? wdRows.map(w=>{
+      const tm = new Date(w.received_at).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const confirmed = w.confirmed_wallet_number
+        ? `<span style="color:var(--mint);font-family:monospace;font-weight:700">${w.confirmed_wallet_number}</span>`
+        : `<span style="color:var(--coral);font-size:10px">❌ غير مؤكد</span>`;
+      return `<tr><td style="font-weight:700;color:var(--coral)">${w.amount||'—'} ج</td><td style="font-size:11px">${(w.device||'—').toUpperCase()}</td>
+        <td style="font-family:monospace;font-size:11px">${w.receiver||'—'}</td><td style="color:var(--dim);font-size:10px">${tm}</td>
+        <td>${confirmed}</td>
+        <td><button class="mini" style="font-size:10px" onclick="correctWdWallet(${w.id})">✏️ صحّح المحفظة</button></td></tr>`;
+    }).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:12px">لا توجد رسايل سحب</td></tr>`;
   }
 }
 
@@ -2674,6 +3136,15 @@ async function loadLiveFeed(){
 setInterval(()=>{ if(window._feedOpen) loadLiveFeed(); }, 8000);
 
 function refresh(){loadStats();loadTx()}
+// 💸 تصحيح يدوي لمحفظة رسالة سحب — من غير أي تأكيد مانع
+async function correctWdWallet(smsId){
+  const wallet = prompt("رقم المحفظة الصحيحة (11 رقم):", "");
+  if(!wallet || wallet.length < 10){toast("رقم غير صالح");return}
+  const r = await rpc("wd_correct_wallet", {p_sms_id: smsId, p_wallet_number: wallet.trim()});
+  if(r?.ok){toast(`✅ اتصحّحت لمحفظة ${wallet}`);loadTvScreen()}
+  else toast("❌ فشل");
+}
+
 // 🆕 تصغير/تكبير القائمة الجانبية — بيتذكر اختيارك تلقائياً في المرة الجاية
 function toggleSidebar(){
   const el = document.getElementById("sidebarEl");
@@ -2684,8 +3155,9 @@ if(localStorage.getItem("ot_sidebar_collapsed") === "1"){
   document.getElementById("sidebarEl")?.classList.add("collapsed");
 }
 
-refresh();setInterval(loadStats,5000);setInterval(loadTx,7000);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+// 🆕 مؤقتاً: فتح مباشر بدون تسجيل دخول (نظام الصلاحيات جاهز ومسجّل، بس مش مفعّل إجباري دلوقتي)
+enterApp({username:'mina', display_name:'مينا', role:'owner'});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden && window._panelUser)refresh()});
 </script>
 </body>
 </html>
