@@ -1105,18 +1105,43 @@ async function doPanelLogin(){
   const p = document.getElementById("loginPassword").value;
   document.getElementById("loginError").textContent = "";
   if(!u || !p){document.getElementById("loginError").textContent = "من فضلك اكتب اسم المستخدم وكلمة السر";return}
-  const r = await rpc("panel_login", {p_username: u, p_password: p});
-  if(!r || !r.ok){document.getElementById("loginError").textContent = r?.error || "فشل تسجيل الدخول";return}
-  localStorage.setItem("ot_session_token", r.token);
-  await enterApp(r);
+  // اسم المستخدم بيتحوّل لإيميل داخلي عشان يتوافق مع Supabase Auth (نفس النمط لكل الحسابات)
+  const email = u.includes('@') ? u : `${u}@ontarget-egy.com`;
+  try{
+    const r = await fetch(`${SUPA}/auth/v1/token?grant_type=password`, {
+      method: "POST", headers: {"Content-Type":"application/json","apikey":KEY},
+      body: JSON.stringify({email, password: p})
+    });
+    const d = await r.json();
+    if(!r.ok || !d.access_token){
+      document.getElementById("loginError").textContent = "اسم المستخدم أو كلمة السر غلط";
+      return;
+    }
+    localStorage.setItem("ot_auth_token", d.access_token);
+    localStorage.setItem("ot_user_id", d.user.id);
+    const prof = await rpc("panel_profile_get", {p_user_id: d.user.id});
+    if(!prof || !prof.ok || !prof.active){
+      document.getElementById("loginError").textContent = "الحساب موقوف أو غير مفعّل";
+      localStorage.removeItem("ot_auth_token");
+      return;
+    }
+    await enterApp(prof);
+  }catch(e){
+    document.getElementById("loginError").textContent = "فشل الاتصال — حاول تاني";
+  }
 }
 
 async function checkExistingSession(){
-  const token = localStorage.getItem("ot_session_token");
-  if(!token){return false}
-  const r = await rpc("panel_check_session", {p_token: token});
-  if(r && r.ok){await enterApp(r); return true}
-  localStorage.removeItem("ot_session_token");
+  const token = localStorage.getItem("ot_auth_token");
+  const userId = localStorage.getItem("ot_user_id");
+  if(!token || !userId){return false}
+  try{
+    const r = await fetch(`${SUPA}/auth/v1/user`, {headers: {"apikey":KEY, "Authorization":"Bearer "+token}});
+    if(!r.ok){ localStorage.removeItem("ot_auth_token"); localStorage.removeItem("ot_user_id"); return false; }
+    const prof = await rpc("panel_profile_get", {p_user_id: userId});
+    if(prof && prof.ok && prof.active){ await enterApp(prof); return true; }
+  }catch(e){}
+  localStorage.removeItem("ot_auth_token"); localStorage.removeItem("ot_user_id");
   return false;
 }
 
@@ -1149,7 +1174,8 @@ function applyPermissions(){
 }
 
 function doPanelLogout(){
-  localStorage.removeItem("ot_session_token");
+  localStorage.removeItem("ot_auth_token");
+  localStorage.removeItem("ot_user_id");
   location.reload();
 }
 
@@ -1495,9 +1521,13 @@ async function createPanelUser(){
   const display = document.getElementById("newUserDisplay").value.trim();
   const role = document.getElementById("newUserRole").value;
   if(!username || !password){toast("محتاج اسم مستخدم وكلمة سر");return}
-  const r = await rpc("panel_user_create", {p_username: username, p_password: password, p_display_name: display, p_role: role});
-  if(r?.ok){toast("✅ اتضاف المستخدم");document.getElementById("newUserUsername").value='';document.getElementById("newUserPassword").value='';document.getElementById("newUserDisplay").value='';loadPanelUsers()}
-  else toast(r?.error||"فشل");
+  if(password.length < 6){toast("كلمة السر لازم 6 حروف/أرقام على الأقل");return}
+  const email = username.includes('@') ? username : `${username}@ontarget-egy.com`;
+  toast("جارٍ الإنشاء...");
+  const r = await fetch(`${SUPA}/functions/v1/panel-create-auth-user`, {method:"POST", headers:H, body: JSON.stringify({email, password, username, display_name: display, role})});
+  const d = await r.json();
+  if(d?.ok){toast("✅ اتضاف المستخدم");document.getElementById("newUserUsername").value='';document.getElementById("newUserPassword").value='';document.getElementById("newUserDisplay").value='';loadPanelUsers()}
+  else toast(d?.error||"فشل");
 }
 async function togglePanelUser(id, active){
   await rpc("panel_user_toggle", {p_id: id, p_active: active});
