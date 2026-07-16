@@ -675,7 +675,12 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
       <div class="ctrl" style="margin-bottom:12px;flex-wrap:wrap">
         <input id="smsFilterSearch" placeholder="بحث بالنص، الرقم، رقم العملية..." style="min-width:200px" oninput="smsFilterDebounced()">
         <select id="smsFilterDevice" onchange="smsFullReload()"><option value="">كل الأجهزة</option><option value="ont1">ONT1</option><option value="ont2">ONT2</option><option value="ont3">ONT3</option><option value="ont4">ONT4</option><option value="ont5">ONT5</option><option value="ont6">ONT6</option></select>
-        <select id="smsFilterCategory" onchange="smsFullReload()"><option value="">كل الأنواع</option><option value="deposit">إيداع</option><option value="withdrawal">سحب</option></select>
+        <div class="ctrl" style="gap:6px">
+          <button class="mini" id="btnCatAll" onclick="setSmsCategory('')" style="background:rgba(217,178,106,.15);border-color:var(--gold);color:var(--gold)">الكل</button>
+          <button class="mini" id="btnCatDeposit" onclick="setSmsCategory('deposit')">💰 إيداع</button>
+          <button class="mini" id="btnCatWithdrawal" onclick="setSmsCategory('withdrawal')">💸 سحب</button>
+        </div>
+        <select id="smsFilterCategory" style="display:none"><option value="">كل الأنواع</option><option value="deposit">إيداع</option><option value="withdrawal">سحب</option></select>
         <input type="date" id="smsFilterFrom" onchange="smsFullReload()">
         <input type="date" id="smsFilterTo" onchange="smsFullReload()">
         <button class="mini" onclick="clearSmsFilters()">✖️ مسح الفلاتر</button>
@@ -2008,6 +2013,14 @@ function closeWalletHistory(){ document.getElementById("walletHistoryModal").cla
 let smsLiveTimer=null;
 window._smsCurPage = 1;
 window._smsDebounceTimer = null;
+function setSmsCategory(cat){
+  document.getElementById("smsFilterCategory").value = cat;
+  document.querySelectorAll("#btnCatAll,#btnCatDeposit,#btnCatWithdrawal").forEach(b=>{b.style.background='';b.style.borderColor='';b.style.color=''});
+  const map = {'':'btnCatAll','deposit':'btnCatDeposit','withdrawal':'btnCatWithdrawal'};
+  const btn = document.getElementById(map[cat]);
+  if(btn){btn.style.background='rgba(217,178,106,.15)';btn.style.borderColor='var(--gold)';btn.style.color='var(--gold)'}
+  smsFullReload();
+}
 function smsFilterDebounced(){
   clearTimeout(window._smsDebounceTimer);
   window._smsDebounceTimer = setTimeout(()=>smsFullReload(), 400);
@@ -2022,10 +2035,9 @@ function smsChangePage(delta){
 function clearSmsFilters(){
   document.getElementById("smsFilterSearch").value='';
   document.getElementById("smsFilterDevice").value='';
-  document.getElementById("smsFilterCategory").value='';
   document.getElementById("smsFilterFrom").value='';
   document.getElementById("smsFilterTo").value='';
-  smsFullReload();
+  setSmsCategory('');
 }
 async function loadBalanceByMonth(){
   const rows = await rpc("wallet_balance_by_month", {p_device: null});
