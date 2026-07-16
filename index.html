@@ -660,16 +660,32 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
   <!-- SMS LIVE -->
   <div id="smslive" class="tabpage hide">
     <div class="panel">
+      <h2>📅 الأرصدة حسب الشهر</h2>
+      <div class="tbl-wrap"><table><thead><tr><th>الشهر</th><th>الجهاز</th><th>عدد الرسايل</th><th>إجمالي الإيداع</th><th>إجمالي السحب</th><th>آخر رصيد مسجّل</th></tr></thead><tbody id="balanceByMonthBody"></tbody></table></div>
+    </div>
+    <div class="panel">
       <div class="panel-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-        <h2 style="margin:0;color:var(--gold);font-size:15px">📱 كل رسائل SMS — بث مباشر</h2>
+        <h2 style="margin:0;color:var(--gold);font-size:15px">📱 كل رسائل SMS — جدول شامل (<span id="smsFullTotal">0</span>)</h2>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="dot live" style="width:8px;height:8px"></span>
           <span style="font-size:11px;color:var(--dim)">تحديث كل 5 ثواني</span>
           <button class="mini" onclick="loadSmsLive()">🔄</button>
         </div>
       </div>
-      <p style="color:var(--dim);font-size:12px;margin-bottom:14px">كل رسالة وصلت للنظام — مطابقة أو لأ، موثوقة أو لأ. للمتابعة اللحظية لصحة استقبال الأجهزة.</p>
-      <div class="tbl-wrap"><table><thead><tr><th>الجهاز</th><th>المزوّد</th><th>النوع</th><th>المبلغ</th><th>من</th><th>👤 المستلم (سحب)</th><th>الرصيد بعدها</th><th>الحالة</th><th>مطابقة؟</th><th>الوقت</th></tr></thead><tbody id="smsLiveBody"></tbody></table></div>
+      <div class="ctrl" style="margin-bottom:12px;flex-wrap:wrap">
+        <input id="smsFilterSearch" placeholder="بحث بالنص، الرقم، رقم العملية..." style="min-width:200px" oninput="smsFilterDebounced()">
+        <select id="smsFilterDevice" onchange="smsFullReload()"><option value="">كل الأجهزة</option><option value="ont1">ONT1</option><option value="ont2">ONT2</option><option value="ont3">ONT3</option><option value="ont4">ONT4</option><option value="ont5">ONT5</option><option value="ont6">ONT6</option></select>
+        <select id="smsFilterCategory" onchange="smsFullReload()"><option value="">كل الأنواع</option><option value="deposit">إيداع</option><option value="withdrawal">سحب</option></select>
+        <input type="date" id="smsFilterFrom" onchange="smsFullReload()">
+        <input type="date" id="smsFilterTo" onchange="smsFullReload()">
+        <button class="mini" onclick="clearSmsFilters()">✖️ مسح الفلاتر</button>
+      </div>
+      <div class="tbl-wrap mobile-cards"><table><thead><tr><th>الجهاز</th><th>النوع</th><th>المبلغ</th><th>من/إلى</th><th>رقم العملية</th><th>نص الرسالة</th><th>الرصيد بعدها</th><th>معاملة مرتبطة</th><th>الوقت</th></tr></thead><tbody id="smsLiveBody"></tbody></table></div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:14px">
+        <button class="mini" onclick="smsChangePage(-1)">◀ السابق</button>
+        <span style="color:var(--dim);font-size:12px">صفحة <span id="smsCurPage">1</span> من <span id="smsTotalPages">1</span></span>
+        <button class="mini" onclick="smsChangePage(1)">التالي ▶</button>
+      </div>
     </div>
   </div>
 
@@ -1231,7 +1247,7 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   if(t.dataset.tab==='pendingqueue')loadPendingQueue();
   if(t.dataset.tab==='reportspage')loadReportsPage();
   if(t.dataset.tab==='opensms')loadOpenSms();
-  if(t.dataset.tab==='smslive'){loadSmsLive();startSmsLiveRefresh();}else{stopSmsLiveRefresh();}
+  if(t.dataset.tab==='smslive'){loadBalanceByMonth();loadSmsLive();startSmsLiveRefresh();}else{stopSmsLiveRefresh();}
   if(t.dataset.tab==='mavenwallets'){loadMavenWallets();loadActionLog();loadMavenBanksLive();loadSwitchQueue();}
   if(t.dataset.tab==='blacklist'){loadBlacklist();loadLocBlacklist();loadSuspicious();}
   if(t.dataset.tab==='complaints')loadComplaints();
@@ -1990,17 +2006,73 @@ function closeWalletHistory(){ document.getElementById("walletHistoryModal").cla
 
 // SMS LIVE FEED
 let smsLiveTimer=null;
+window._smsCurPage = 1;
+window._smsDebounceTimer = null;
+function smsFilterDebounced(){
+  clearTimeout(window._smsDebounceTimer);
+  window._smsDebounceTimer = setTimeout(()=>smsFullReload(), 400);
+}
+function smsFullReload(){ window._smsCurPage = 1; loadSmsLive(); }
+function smsChangePage(delta){
+  const next = window._smsCurPage + delta;
+  if(next < 1) return;
+  window._smsCurPage = next;
+  loadSmsLive();
+}
+function clearSmsFilters(){
+  document.getElementById("smsFilterSearch").value='';
+  document.getElementById("smsFilterDevice").value='';
+  document.getElementById("smsFilterCategory").value='';
+  document.getElementById("smsFilterFrom").value='';
+  document.getElementById("smsFilterTo").value='';
+  smsFullReload();
+}
+async function loadBalanceByMonth(){
+  const rows = await rpc("wallet_balance_by_month", {p_device: null});
+  document.getElementById("balanceByMonthBody").innerHTML = (rows && rows.length) ? rows.map(m=>
+    `<tr><td style="font-weight:700">${m.month}</td><td>${(m.device||'—').toString().toUpperCase()}</td><td>${m.sms_count}</td>
+      <td style="color:var(--mint)">${m.total_deposits?(+m.total_deposits).toLocaleString():'0'} ج</td>
+      <td style="color:var(--coral)">${m.total_withdrawals?(+m.total_withdrawals).toLocaleString():'0'} ج</td>
+      <td style="font-family:monospace">${m.end_of_month_balance?(+m.end_of_month_balance).toLocaleString():'—'} ج</td></tr>`
+  ).join("") : '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:12px">مفيش بيانات</td></tr>';
+}
 async function loadSmsLive(){
-  const s=await rpc("sms_live_feed",{p_limit:60});if(!s)return;
-  document.getElementById("smsLiveBody").innerHTML=s.length?s.map(x=>{
-    const t=x.received_at?new Date(x.received_at).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
-    const cat=x.category==='deposit'?'إيداع':x.category==='withdrawal'?'سحب':(x.category||'—');
-    const statusPill=x.status==='approved'?'<span class="pill g">موثوقة</span>':x.status==='unverified'?'<span class="pill a">غير موثوقة</span>':`<span class="pill">${x.status||'—'}</span>`;
-    const matchedPill=x.matched?'<span class="pill g">✓ متطابقة</span>':(x.consumed_by_tx_id?'<span class="pill" style="background:rgba(59,130,246,.15);color:var(--blue)">مستخدمة</span>':'<span class="pill a">بدون تطابق</span>');
-    const from=x.from_number?`<span style="font-family:monospace;font-size:11px">${x.from_number}</span>${x.from_name?`<br><span style="font-size:10px;color:var(--dim)">${x.from_name}</span>`:''}`:'—';
-    const receiver = x.category==='withdrawal' ? (x.receiver_number ? `<span style="font-family:monospace;font-size:11px;color:var(--coral)">${x.receiver_number}</span>` : '<span style="color:var(--dim);font-size:10px">—</span>') : '<span style="color:var(--mute2);font-size:10px">—</span>';
-    return `<tr><td><span class="pill" style="background:rgba(59,130,246,.15);color:var(--blue)">${(x.device||'—').toUpperCase()}</span></td><td style="font-size:11px;color:var(--dim)">${x.provider||'—'}</td><td style="font-size:11px">${cat}</td><td style="font-weight:700;color:var(--green)">${x.amount!=null?x.amount+' ج':'—'}</td><td>${from}</td><td>${receiver}</td><td style="color:var(--dim);font-size:12px">${x.balance!=null?x.balance+' ج':'—'}</td><td>${statusPill}</td><td>${matchedPill}</td><td style="color:var(--dim);font-size:11px">${t}</td></tr>`;
-  }).join(""):'<tr><td colspan="10" style="text-align:center;color:var(--dim);padding:20px">لا توجد رسائل بعد</td></tr>';
+  const search = document.getElementById("smsFilterSearch")?.value.trim() || null;
+  const device = document.getElementById("smsFilterDevice")?.value || null;
+  const category = document.getElementById("smsFilterCategory")?.value || null;
+  const from = document.getElementById("smsFilterFrom")?.value ? document.getElementById("smsFilterFrom").value+'T00:00:00Z' : null;
+  const to = document.getElementById("smsFilterTo")?.value ? document.getElementById("smsFilterTo").value+'T23:59:59Z' : null;
+
+  const r = await rpc("sms_full_table", {p_page: window._smsCurPage, p_page_size: 30, p_device: device, p_category: category, p_from: from, p_to: to, p_search: search});
+  if(!r) return;
+  document.getElementById("smsFullTotal").textContent = r.total;
+  document.getElementById("smsCurPage").textContent = r.page;
+  document.getElementById("smsTotalPages").textContent = r.total_pages || 1;
+
+  const s = r.rows || [];
+  document.getElementById("smsLiveBody").innerHTML = s.length ? s.map(x=>{
+    const t = x.received_at ? new Date(x.received_at).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+    const cat = x.category==='deposit' ? 'إيداع' : x.category==='withdrawal' ? 'سحب' : (x.category||'—');
+    const who = x.category==='withdrawal'
+      ? (x.receiver_number ? `<span style="font-family:monospace;font-size:11px;color:var(--coral)">→ ${x.receiver_number}</span>` : '—')
+      : (x.sender_number ? `<span style="font-family:monospace;font-size:11px">${x.sender_number}</span>${x.sender_name?`<br><span style="font-size:10px;color:var(--dim)">${x.sender_name}</span>`:''}` : (x.sender_name || '—'));
+    const msgFull = (x.raw_sms || x.message || '').toString();
+    const msgShort = msgFull.length > 60 ? msgFull.slice(0,60)+'…' : msgFull;
+    const linkedTx = x.matched_tx_id
+      ? `<span class="pill ${x.decision&&x.decision.includes('approved')?'g':x.decision&&x.decision.includes('declined')?'r':'a'}" title="${(x.decision_reason||'').replace(/"/g,'&quot;')}">#${x.matched_tx_id}</span>`
+      : (x.consumed_by_tx_id ? `<span class="pill">مستخدمة #${x.consumed_by_tx_id}</span>` : '<span style="color:var(--dim);font-size:10px">—</span>');
+    return `<tr>
+      <td data-label="الجهاز"><span class="pill" style="background:rgba(59,130,246,.15);color:var(--blue)">${(x.device||'—').toUpperCase()}</span></td>
+      <td data-label="النوع" style="font-size:11px">${cat}</td>
+      <td data-label="المبلغ" style="font-weight:700;color:var(--green)">${x.amount!=null?x.amount+' ج':'—'}</td>
+      <td data-label="من/إلى">${who}</td>
+      <td data-label="رقم العملية" style="font-family:monospace;font-size:10px;color:var(--dim)">${x.trx_id||'—'}</td>
+      <td data-label="الرسالة" style="font-size:10px;color:var(--dim);max-width:220px" title="${msgFull.replace(/"/g,'&quot;')}">${msgShort||'—'}</td>
+      <td data-label="الرصيد" style="color:var(--dim);font-size:12px">${x.balance_after!=null?x.balance_after+' ج':'—'}</td>
+      <td data-label="معاملة">${linkedTx}</td>
+      <td data-label="الوقت" style="color:var(--dim);font-size:11px">${t}</td>
+    </tr>`;
+  }).join("") : '<tr><td colspan="9" style="text-align:center;color:var(--dim);padding:20px">لا توجد رسائل مطابقة للفلاتر</td></tr>';
 }
 function startSmsLiveRefresh(){ stopSmsLiveRefresh(); smsLiveTimer=setInterval(loadSmsLive,5000); }
 function stopSmsLiveRefresh(){ if(smsLiveTimer){clearInterval(smsLiveTimer); smsLiveTimer=null;} }
