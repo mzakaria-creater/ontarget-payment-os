@@ -410,6 +410,8 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         <div class="tab" data-tab="merchants">⚙️ <span class="label">قواعد الأتمتة</span></div>
         <div class="tab" data-tab="payout">💸 <span class="label">أتمتة الصرف</span></div>
         <div class="tab" data-tab="debtledger">💰 <span class="label">المديونية والتسديد</span></div>
+        <div class="tab" data-tab="merchantsreport">🏢 <span class="label">تقارير التجار</span></div>
+        <div class="tab" data-tab="usdtsettle">💱 <span class="label">تسوية USDT</span></div>
         <div class="tab" data-tab="abuseflags">🚩 <span class="label">مشتبهين</span></div>
         <div class="tab" data-tab="tvscreen">📺 <span class="label">شاشة العرض</span></div>
         <div class="tab" data-tab="crmpage">👥 <span class="label">CRM العملاء</span></div>
@@ -787,6 +789,46 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
       <div class="tbl-wrap"><table><thead><tr>
         <th>الرقم</th><th>المبلغ</th><th>التصنيف</th><th>المسدَّد</th><th>المتبقي</th><th>وسيلة التسديد</th><th>التاريخ</th><th>إجراء</th>
       </tr></thead><tbody id="debtLedgerBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- MERCHANTS HIERARCHY REPORT -->
+  <div id="merchantsreport" class="tabpage hide">
+    <div class="panel">
+      <h2>🏢 NagoPay → Maven → التجار — إدارة العمولات</h2>
+      <div class="tbl-wrap"><table><thead><tr><th>التاجر</th><th>عمولة أساسية %</th><th>الفروع</th><th>إجراء</th></tr></thead><tbody id="merchantsListBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>📊 تقرير أداء التاجر</h2>
+      <div class="ctrl" style="margin-bottom:12px">
+        <select id="reportMerchantFilter"><option value="">كل التجار</option></select>
+        <input type="date" id="reportFrom"><input type="date" id="reportTo">
+        <select id="reportGroupBy"><option value="day">يومي</option><option value="month">شهري</option></select>
+        <button class="mini gold" onclick="loadMerchantReport()">📊 اعرض</button>
+      </div>
+      <div class="kpis" id="merchantReportKpis" style="margin-bottom:14px"></div>
+      <h3 style="font-size:13px;color:var(--gold);margin:14px 0 8px">حسب الفترة</h3>
+      <div class="tbl-wrap"><table><thead><tr><th>الفترة</th><th>التاجر</th><th>عدد المقبول</th><th>الإجمالي</th><th>عمولتنا</th></tr></thead><tbody id="reportByPeriodBody"></tbody></table></div>
+      <h3 style="font-size:13px;color:var(--gold);margin:14px 0 8px">حسب المحفظة</h3>
+      <div class="tbl-wrap"><table><thead><tr><th>المحفظة</th><th>التاجر</th><th>عدد</th><th>استلمت كام</th></tr></thead><tbody id="reportByWalletBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- USDT SETTLEMENT -->
+  <div id="usdtsettle" class="tabpage hide">
+    <div class="panel">
+      <h2>💱 تسوية USDT — تسليم فلوس التاجر</h2>
+      <div class="ctrl" style="flex-wrap:wrap;margin-bottom:12px">
+        <select id="usdtMerchant"><option value="">اختر التاجر</option></select>
+        <input id="usdtAmountEgp" type="number" placeholder="المبلغ (ج.م)">
+        <input id="usdtRate" type="number" placeholder="سعر الصرف (ج.م لكل USDT)" step="0.01">
+        <input id="usdtCommission" type="number" placeholder="عمولة التسوية %" step="0.01" value="0">
+        <input id="usdtWallet" placeholder="عنوان محفظة USDT (اختياري)">
+        <button class="mini gold" onclick="createUsdtSettlement()">💱 احسب وسجّل</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>التاجر</th><th>المبلغ (ج.م)</th><th>السعر</th><th>USDT إجمالي</th><th>عمولة %</th><th>عمولة USDT</th><th>صافي للتاجر</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th>
+      </tr></thead><tbody id="usdtSettlementsBody"></tbody></table></div>
     </div>
   </div>
 
@@ -1268,6 +1310,8 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   if(t.dataset.tab==='merchants'){loadRules();loadAutomationStrategies()}
   if(t.dataset.tab==='payout'){loadPayoutRecipients();loadPayoutKpis()}
   if(t.dataset.tab==='debtledger'){loadDebtKpis();loadDebtLedger('unclassified')}
+  if(t.dataset.tab==='merchantsreport'){loadMerchantsList();populateReportMerchantFilter();loadMerchantReport()}
+  if(t.dataset.tab==='usdtsettle'){populateUsdtMerchantFilter();loadUsdtSettlements()}
   if(t.dataset.tab==='abuseflags')loadAbuseFlags();
   if(t.dataset.tab==='tvscreen'){loadTvScreen();if(!window._tvInterval)window._tvInterval=setInterval(loadTvScreen,4000)}else{if(window._tvInterval){clearInterval(window._tvInterval);window._tvInterval=null}}
   if(t.dataset.tab==='crmpage')loadCrmList();
@@ -2428,6 +2472,95 @@ function exportPayoutPdf(){
   `);
   win.document.close();
   setTimeout(()=>win.print(), 400);
+}
+
+// 🏢 التجار والعمولات
+window._merchantsCache = [];
+async function loadMerchantsList(){
+  const rows = await rpc("merchants_list", {});
+  window._merchantsCache = rows || [];
+  document.getElementById("merchantsListBody").innerHTML = (rows && rows.length) ? rows.map(m=>{
+    const branchesHtml = (m.branches||[]).map(b=>
+      `<div style="display:flex;gap:6px;align-items:center;margin-bottom:3px">
+        <span style="font-size:9px;color:var(--dim);flex:1">${b.branch_name}</span>
+        <input type="number" value="${b.commission_rate??''}" placeholder="ورث ${m.commission_rate}%" style="width:70px;font-size:10px;padding:3px" onchange="branchSetCommission(${b.id}, this.value)">
+      </div>`
+    ).join("");
+    return `<tr><td style="font-weight:700">${m.name}</td>
+      <td><input type="number" value="${m.commission_rate}" step="0.1" style="width:80px" onchange="merchantSetCommission(${m.id}, this.value)"> %</td>
+      <td style="max-width:300px">${branchesHtml}</td>
+      <td><span class="pill ${m.active?'g':'r'}">${m.active?'فعّال':'موقوف'}</span></td></tr>`;
+  }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:12px">مفيش تجار</td></tr>';
+}
+async function merchantSetCommission(id, rate){
+  await rpc("merchant_set_commission", {p_merchant_id: id, p_rate: +rate});
+  toast("✅ اتحدّثت العمولة");
+}
+async function branchSetCommission(id, rate){
+  await rpc("branch_set_commission", {p_branch_id: id, p_rate: rate===''?null:+rate});
+  toast("✅ اتحدّثت عمولة الفرع");
+}
+function populateReportMerchantFilter(){
+  const sel = document.getElementById("reportMerchantFilter");
+  sel.innerHTML = '<option value="">كل التجار</option>' + window._merchantsCache.map(m=>`<option value="${m.id}">${m.name}</option>`).join("");
+}
+async function loadMerchantReport(){
+  const merchantId = document.getElementById("reportMerchantFilter").value || null;
+  const from = document.getElementById("reportFrom").value || null;
+  const to = document.getElementById("reportTo").value || null;
+  const groupBy = document.getElementById("reportGroupBy").value;
+  const r = await rpc("merchant_report", {p_merchant_id: merchantId?+merchantId:null, p_from: from, p_to: to, p_group_by: groupBy});
+  if(!r) return;
+  const tot = r.totals || {};
+  document.getElementById("merchantReportKpis").innerHTML = `
+    <div class="kpi g"><div class="lbl">إجمالي المقبول</div><div class="num" style="font-size:16px">${(+tot.total_paid||0).toLocaleString()} ج</div></div>
+    <div class="kpi r"><div class="lbl">إجمالي المرفوض</div><div class="num" style="font-size:16px">${(+tot.total_declined||0).toLocaleString()} ج</div></div>
+    <div class="kpi gold"><div class="lbl">عمولتنا الإجمالية</div><div class="num" style="font-size:16px">${(+tot.our_total_commission||0).toLocaleString()} ج</div></div>
+  `;
+  document.getElementById("reportByPeriodBody").innerHTML = (r.by_period||[]).map(p=>
+    `<tr><td>${p.period}</td><td>${p.merchant_name}</td><td>${p.paid_count}</td><td style="color:var(--mint)">${(+p.paid_amount||0).toLocaleString()} ج</td><td style="color:var(--gold)">${(+p.our_commission||0).toLocaleString()} ج</td></tr>`
+  ).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:12px">مفيش بيانات</td></tr>';
+  document.getElementById("reportByWalletBody").innerHTML = (r.by_wallet||[]).map(w=>
+    `<tr><td style="font-family:monospace">${w.wallet||'—'}</td><td>${w.merchant_name}</td><td>${w.n}</td><td style="color:var(--mint)">${(+w.received||0).toLocaleString()} ج</td></tr>`
+  ).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:12px">مفيش بيانات</td></tr>';
+}
+
+// 💱 تسوية USDT
+function populateUsdtMerchantFilter(){
+  const sel = document.getElementById("usdtMerchant");
+  sel.innerHTML = '<option value="">اختر التاجر</option>' + window._merchantsCache.map(m=>`<option value="${m.id}">${m.name}</option>`).join("");
+}
+async function createUsdtSettlement(){
+  const merchantId = document.getElementById("usdtMerchant").value;
+  const amount = document.getElementById("usdtAmountEgp").value;
+  const rate = document.getElementById("usdtRate").value;
+  const commission = document.getElementById("usdtCommission").value || 0;
+  const wallet = document.getElementById("usdtWallet").value || null;
+  if(!merchantId || !amount || !rate){toast("محتاج تاجر ومبلغ وسعر صرف");return}
+  const r = await rpc("usdt_settlement_create", {p_merchant_id: +merchantId, p_amount_egp: +amount, p_usdt_rate: +rate, p_commission_pct: +commission, p_wallet_address: wallet});
+  if(r?.ok){
+    toast(`✅ USDT إجمالي: ${(+r.amount_usdt).toFixed(2)} — صافي للتاجر: ${(+r.net_usdt_to_merchant).toFixed(2)}`);
+    document.getElementById("usdtAmountEgp").value=''; document.getElementById("usdtRate").value=''; document.getElementById("usdtCommission").value='0'; document.getElementById("usdtWallet").value='';
+    loadUsdtSettlements();
+  } else toast("❌ فشل");
+}
+async function loadUsdtSettlements(){
+  const rows = await rpc("usdt_settlements_list", {});
+  document.getElementById("usdtSettlementsBody").innerHTML = (rows && rows.length) ? rows.map(s=>{
+    const tm = new Date(s.settled_at).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<tr><td style="font-weight:700">${s.merchant_name||'—'}</td><td>${(+s.amount_egp).toLocaleString()} ج</td>
+      <td>${s.usdt_rate}</td><td style="color:var(--sky)">${(+s.amount_usdt).toFixed(2)}</td>
+      <td>${s.settlement_commission_pct}%</td><td style="color:var(--amber)">${(+s.commission_usdt).toFixed(2)}</td>
+      <td style="color:var(--mint);font-weight:700">${(+s.net_usdt_to_merchant).toFixed(2)}</td>
+      <td><span class="pill ${s.status==='confirmed'?'g':s.status==='sent'?'a':''}">${s.status}</span></td>
+      <td style="color:var(--dim);font-size:10px">${tm}</td>
+      <td>${s.status!=='confirmed'?`<button class="mini" onclick="usdtAdvanceStatus(${s.id},'${s.status==='pending'?'sent':'confirmed'}')">${s.status==='pending'?'📤 أُرسل':'✅ اتأكد'}</button>`:''}</td></tr>`;
+  }).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--dim);padding:12px">مفيش تسويات بعد</td></tr>';
+}
+async function usdtAdvanceStatus(id, status){
+  await rpc("usdt_settlement_update_status", {p_id: id, p_status: status});
+  toast("✅ اتحدّثت الحالة");
+  loadUsdtSettlements();
 }
 
 const CAT_LABELS = {unclassified:'⚠️ غير مصنّفة', receivable:'💵 دين', expense:'🧾 مصروف', salary:'💼 مرتب', bonus:'🎁 مكافأة'};
