@@ -314,7 +314,60 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
   .mobile-cards td::before{content:attr(data-label);color:var(--gold-dim);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;flex:none}
   .mobile-cards td:last-child{flex-wrap:wrap;justify-content:flex-start;padding-top:10px;border-top:1px solid var(--line);margin-top:4px}
   .mobile-cards td:last-child::before{content:''}
+
+  /* ============ تنقّل بستايل التطبيقات على الموبايل ============ */
+  .sidebar{
+    position:fixed; inset:auto 0 0 0; width:100%; height:64px;
+    flex-direction:row; border-left:none; border-top:1px solid var(--line);
+    padding-right:0; z-index:50;
+  }
+  .sidebar #sidebarToggle, .sidebar .brand, .sidebar .status-row, .sidebar .pulse-rail, .sidebar .nav-scroll{display:none}
+  #mobileBottomNav{
+    display:flex; width:100%; height:100%;
+  }
+  .mnav-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    color:var(--dim); font-size:9px; cursor:pointer; position:relative; transition:color .15s;
+  }
+  .mnav-item.active{color:var(--gold)}
+  .mnav-item.active::before{
+    content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:28px; height:2px; border-radius:2px; background:var(--gold);
+  }
+  .mnav-icon{font-size:19px; line-height:1}
+  .mnav-label{font-size:9px; font-weight:600}
+
+  #moreSheetOverlay{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60;
+    align-items:flex-end; backdrop-filter:blur(3px);
+  }
+  #moreSheetOverlay.show{display:flex}
+  #moreSheetPanel{
+    width:100%; max-height:82vh; overflow-y:auto; background:var(--panel);
+    border-radius:20px 20px 0 0; border-top:1px solid var(--line);
+    animation:sheetSlideUp .25s ease-out; padding-bottom:24px;
+  }
+  @keyframes sheetSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  #moreSheetGrid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:6px 14px 10px;
+  }
+  .more-item{
+    display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 4px;
+    border-radius:12px; cursor:pointer; color:var(--txt); transition:background .15s;
+  }
+  .more-item:active{background:var(--panel2)}
+  .more-item .more-icon{
+    font-size:22px; width:48px; height:48px; display:flex; align-items:center; justify-content:center;
+    background:var(--panel2); border:1px solid var(--line); border-radius:14px;
+  }
+  .more-item .more-label{font-size:10px; text-align:center; color:var(--dim); line-height:1.3}
+
+  .main{padding-bottom:76px !important}
 }
+@media(min-width:761px){
+  #mobileBottomNav, #moreSheetOverlay{display:none !important}
+}
+
 /* ============ شاشة العرض — ستايل 3D جديد ============ */
 @keyframes tv3dFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .tv3d-kpi{
@@ -383,6 +436,26 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
       <div><h1>ON<span class="brand-suffix">TARGET</span></h1><p>غرفة التحكم · MENA P2P</p></div>
     </div>
     <div class="status-row"><span class="dot dead" id="dot"></span><span id="statusText">جارٍ الاتصال…</span></div>
+
+    <!-- 📱 شريط تنقّل سفلي بستايل التطبيقات (يظهر بس على الموبايل) -->
+    <div id="mobileBottomNav">
+      <div class="mnav-item active" data-tab="monitor"><span class="mnav-icon">📊</span><span class="mnav-label">مراقبة</span></div>
+      <div class="mnav-item" data-tab="pendingqueue"><span class="mnav-icon">⏳</span><span class="mnav-label">معلّقة</span></div>
+      <div class="mnav-item" data-tab="smslive"><span class="mnav-icon">📱</span><span class="mnav-label">SMS</span></div>
+      <div class="mnav-item" data-tab="wallets"><span class="mnav-icon">👛</span><span class="mnav-label">محافظ</span></div>
+      <div class="mnav-item" id="mnavMoreBtn" onclick="openMoreSheet()"><span class="mnav-icon">⋯</span><span class="mnav-label">المزيد</span></div>
+    </div>
+
+    <!-- شاشة "المزيد" الكاملة — كل التابات كشبكة أيقونات -->
+    <div id="moreSheetOverlay" onclick="if(event.target===this) closeMoreSheet()">
+      <div id="moreSheetPanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 10px">
+          <h2 style="margin:0;font-size:16px;color:var(--gold)">كل الصفحات</h2>
+          <button onclick="closeMoreSheet()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);width:32px;height:32px;border-radius:50%;font-size:16px">✕</button>
+        </div>
+        <div id="moreSheetGrid"></div>
+      </div>
+    </div>
 
     <div class="nav-scroll">
       <div class="nav-group">
@@ -1306,6 +1379,9 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".tabpage").forEach(x=>x.classList.add("hide"));
   t.classList.add("active");document.getElementById(t.dataset.tab).classList.remove("hide");
+  // 🆕 مزامنة حالة "نشط" مع الشريط السفلي وشاشة "المزيد" على الموبايل
+  document.querySelectorAll(".mnav-item").forEach(m=>m.classList.toggle("active", m.dataset.tab===t.dataset.tab));
+  closeMoreSheet();
   if(t.dataset.tab==='wallets'){loadWallets();loadWalletMasterList();loadWalletHistory()}
   if(t.dataset.tab==='merchants'){loadRules();loadAutomationStrategies()}
   if(t.dataset.tab==='payout'){loadPayoutRecipients();loadPayoutKpis()}
@@ -1328,6 +1404,29 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   if(t.dataset.tab==='walletpools')loadWalletPools();
   if(t.dataset.tab==='imagereview')loadImageReview();
 });
+
+// 📱 شريط التنقّل السفلي + شاشة "المزيد" (ستايل تطبيقات الموبايل)
+document.querySelectorAll(".mnav-item[data-tab]").forEach(m=>{
+  m.onclick = () => { const t = document.querySelector(`.tab[data-tab="${m.dataset.tab}"]`); if(t) t.click(); };
+});
+function openMoreSheet(){
+  const grid = document.getElementById("moreSheetGrid");
+  if(!grid.dataset.built){
+    const allTabs = Array.from(document.querySelectorAll(".nav-scroll .tab"));
+    grid.innerHTML = allTabs.map(t=>{
+      const icon = (t.textContent.trim().match(/^\S+/)||['📄'])[0];
+      const label = t.querySelector(".label")?.textContent.trim() || t.dataset.tab;
+      return `<div class="more-item" data-tab="${t.dataset.tab}"><span class="more-icon">${icon}</span><span class="more-label">${label}</span></div>`;
+    }).join("");
+    grid.querySelectorAll(".more-item").forEach(mi=>{
+      mi.onclick = () => { const t = document.querySelector(`.tab[data-tab="${mi.dataset.tab}"]`); if(t) t.click(); };
+    });
+    grid.dataset.built = "1";
+  }
+  document.getElementById("moreSheetOverlay").classList.add("show");
+}
+function closeMoreSheet(){ document.getElementById("moreSheetOverlay")?.classList.remove("show"); }
+
 async function loadStats(){
   const s=await rpc("dashboard_stats");if(!s)return;
   document.getElementById("dot").className="dot "+(s.automation_enabled?"live":"dead");
