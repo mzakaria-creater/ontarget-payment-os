@@ -1521,6 +1521,12 @@ async function loadReportsPage(){
       <td style="font-weight:700">${(+(w.paid_total||0)).toLocaleString()} ج</td></tr>`).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:12px">مفيش بيانات</td></tr>';
 }
 
+async function linkBestGuess(txId, smsId){
+  if(!confirm(`تربط وتقبل معاملة ${txId} بالرسالة ${smsId}؟`)) return;
+  const r = await rpc("pending_link_and_approve", {p_tx_id: txId, p_sms_id: smsId});
+  toast(r?.ok ? `✅ اترابطت وقُبلت` : `❌ ${r?.error||'فشل'}`);
+  loadPendingQueue();
+}
 async function loadPendingQueue(){
   const rows = await rpc("pending_queue_list", {p_limit: 200});
   document.getElementById("pqCount").textContent = rows ? rows.length : 0;
@@ -1528,7 +1534,9 @@ async function loadPendingQueue(){
     const tm = new Date(t.created_at).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     const senderInfo = t.sender_number ? `<span style="font-family:monospace;font-size:11px">${t.sender_number}</span>${t.sender_name?` <span style="color:var(--dim);font-size:10px">(${t.sender_name})</span>`:''}` : '<span style="color:var(--dim)">—</span>';
     const advice = t.match_score ? `<span style="color:var(--mint);font-weight:700;font-size:11px">${t.match_score}%</span> <div style="font-size:9px;color:var(--dim);max-width:200px">${(t.match_reasons||[]).join(' · ')}</div>` : '<span style="color:var(--dim);font-size:10px">مفيش اقتراح</span>';
-    const smsMatch = t.sms_id ? `<div style="font-size:11px"><span style="color:var(--mint);font-weight:700">✅ #${t.sms_id}</span><br><span style="font-family:monospace;font-size:10px;color:var(--dim)">${t.sms_sender_number||t.sms_sender_name||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${t.sms_amount||''} ج · ${t.sms_time?new Date(t.sms_time).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):''}</span></div>` : '<span style="color:var(--dim);font-size:11px">— بدون رسالة</span>';
+    const smsMatch = t.sms_id ? `<div style="font-size:11px"><span style="color:var(--mint);font-weight:700">✅ #${t.sms_id}</span><br><span style="font-family:monospace;font-size:10px;color:var(--dim)">${t.sms_sender_number||t.sms_sender_name||'—'}</span><br><span style="font-size:10px;color:var(--dim)">${t.sms_amount||''} ج · ${t.sms_time?new Date(t.sms_time).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):''}</span></div>`
+      : t.best_guess ? `<div style="font-size:11px;background:rgba(240,180,58,.1);border-radius:6px;padding:5px 7px"><span style="color:var(--amber);font-weight:700">🔍 ترشيح ${t.best_guess.score}%</span><br><span style="font-family:monospace;font-size:10px;color:var(--dim)">${t.best_guess.sender_number||t.best_guess.sender_name||'—'}</span><br><span style="font-size:9px;color:var(--dim)">${(t.best_guess.reasons||[]).join(' · ')}</span><br><button class="mini" style="margin-top:3px;font-size:9px;padding:3px 6px" onclick="linkBestGuess(${t.tx_id},${t.best_guess.sms_id})">🔗 اربط ده</button></div>`
+      : '<span style="color:var(--dim);font-size:11px">— بدون رسالة</span>';
     return `<tr><td data-label="رقم" style="font-family:monospace;color:var(--dim)">${t.tx_id}</td><td data-label="المبلغ" style="font-weight:700">${t.amount} ج</td>
       <td data-label="المُرسِل">${senderInfo}</td><td data-label="المحفظة" style="font-family:monospace;font-size:11px">${t.to_account_number||'—'}</td>
       <td data-label="Maven"><span class="pill a">${t.maven_status||'—'}</span></td>
