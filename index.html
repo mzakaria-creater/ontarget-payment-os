@@ -409,6 +409,7 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
         <div class="nav-group-label">الإدارة</div>
         <div class="tab" data-tab="merchants">⚙️ <span class="label">قواعد الأتمتة</span></div>
         <div class="tab" data-tab="payout">💸 <span class="label">أتمتة الصرف</span></div>
+        <div class="tab" data-tab="debtledger">💰 <span class="label">المديونية والتسديد</span></div>
         <div class="tab" data-tab="abuseflags">🚩 <span class="label">مشتبهين</span></div>
         <div class="tab" data-tab="tvscreen">📺 <span class="label">شاشة العرض</span></div>
         <div class="tab" data-tab="crmpage">👥 <span class="label">CRM العملاء</span></div>
@@ -766,6 +767,26 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
       <div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>
         <th>الرقم</th><th>الاسم</th><th>إجمالي المستلَم</th><th>عدد المرات</th><th>أول ظهور</th><th>آخر ظهور</th><th>التصنيف</th><th></th>
       </tr></thead><tbody id="payoutBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- DEBT LEDGER -->
+  <div id="debtledger" class="tabpage hide">
+    <div class="panel">
+      <h2>💰 المديونية والتسديد</h2>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:14px">أي فلوس بتتسحب لازم تتصنّف: <b style="color:var(--amber)">دين (لازم يترجع بوسيلة تانية)</b> أو <b style="color:var(--sky)">مصروف/مرتب/مكافأة (منتهي، مش محتاج تسديد)</b>.</p>
+      <div class="kpis" id="debtKpis" style="margin-bottom:14px"></div>
+      <div class="ctrl" style="margin-bottom:12px">
+        <button class="mini gold" onclick="loadDebtLedger('unclassified')">⚠️ غير مصنّفة</button>
+        <button class="mini" onclick="loadDebtLedger('receivable')">💵 ديون (لازم ترجع)</button>
+        <button class="mini" onclick="loadDebtLedger('expense')">🧾 مصاريف</button>
+        <button class="mini" onclick="loadDebtLedger('salary')">💼 مرتبات</button>
+        <button class="mini" onclick="loadDebtLedger('bonus')">🎁 مكافآت</button>
+        <button class="mini" onclick="loadDebtLedger(null)">📋 الكل</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>الرقم</th><th>المبلغ</th><th>التصنيف</th><th>المسدَّد</th><th>المتبقي</th><th>وسيلة التسديد</th><th>التاريخ</th><th>إجراء</th>
+      </tr></thead><tbody id="debtLedgerBody"></tbody></table></div>
     </div>
   </div>
 
@@ -1246,6 +1267,7 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   if(t.dataset.tab==='wallets'){loadWallets();loadWalletMasterList();loadWalletHistory()}
   if(t.dataset.tab==='merchants'){loadRules();loadAutomationStrategies()}
   if(t.dataset.tab==='payout'){loadPayoutRecipients();loadPayoutKpis()}
+  if(t.dataset.tab==='debtledger'){loadDebtKpis();loadDebtLedger('unclassified')}
   if(t.dataset.tab==='abuseflags')loadAbuseFlags();
   if(t.dataset.tab==='tvscreen'){loadTvScreen();if(!window._tvInterval)window._tvInterval=setInterval(loadTvScreen,4000)}else{if(window._tvInterval){clearInterval(window._tvInterval);window._tvInterval=null}}
   if(t.dataset.tab==='crmpage')loadCrmList();
@@ -2406,6 +2428,49 @@ function exportPayoutPdf(){
   `);
   win.document.close();
   setTimeout(()=>win.print(), 400);
+}
+
+const CAT_LABELS = {unclassified:'⚠️ غير مصنّفة', receivable:'💵 دين', expense:'🧾 مصروف', salary:'💼 مرتب', bonus:'🎁 مكافأة'};
+async function loadDebtKpis(){
+  const s = await rpc("debt_ledger_summary", {});
+  if(!s) return;
+  document.getElementById("debtKpis").innerHTML = `
+    <div class="kpi a"><div class="lbl">غير مصنّفة</div><div class="num">${s.unclassified_count} (${(+s.unclassified_amount).toLocaleString()} ج)</div></div>
+    <div class="kpi r"><div class="lbl">ديون متبقية (لازم ترجع)</div><div class="num" style="font-size:16px">${(+s.receivable_outstanding).toLocaleString()} ج</div></div>
+    <div class="kpi"><div class="lbl">إجمالي المصاريف</div><div class="num" style="font-size:16px">${(+s.total_expense).toLocaleString()} ج</div></div>
+    <div class="kpi g"><div class="lbl">إجمالي المرتبات</div><div class="num" style="font-size:16px">${(+s.total_salary).toLocaleString()} ج</div></div>
+    <div class="kpi g"><div class="lbl">إجمالي المكافآت</div><div class="num" style="font-size:16px">${(+s.total_bonus).toLocaleString()} ج</div></div>
+  `;
+}
+async function loadDebtLedger(cat){
+  const rows = await rpc("debt_ledger_list", {p_category: cat});
+  document.getElementById("debtLedgerBody").innerHTML = (rows && rows.length) ? rows.map(d=>{
+    const tm = d.transaction_date ? new Date(d.transaction_date).toLocaleDateString('ar-EG',{month:'short',day:'numeric'}) : '—';
+    return `<tr><td style="font-family:monospace;font-weight:700">${d.phone_number}</td><td style="color:var(--coral);font-weight:700">${d.amount} ج</td>
+      <td>${CAT_LABELS[d.category]||d.category}</td>
+      <td style="color:var(--mint)">${d.settled_amount||0} ج</td>
+      <td style="color:${d.remaining>0?'var(--amber)':'var(--dim)'}">${d.remaining} ج</td>
+      <td style="font-size:10px;color:var(--dim)">${d.settlement_method||'—'}</td>
+      <td style="color:var(--dim);font-size:10px">${tm}</td>
+      <td><button class="mini" onclick="classifyDebt(${d.id})">✏️ صنّف</button>${d.category==='receivable'?`<button class="mini green" onclick="settleDebt(${d.id},${d.amount})">✅ سدّد</button>`:''}</td></tr>`;
+  }).join("") : '<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:12px">مفيش سجلات في الفئة دي</td></tr>';
+}
+async function classifyDebt(id){
+  const cat = prompt("صنّفها: receivable (دين) / expense (مصروف) / salary (مرتب) / bonus (مكافأة)", "receivable");
+  if(!cat) return;
+  let method = null;
+  if(cat==='receivable') method = prompt("هيترجع بأنهي وسيلة؟ (اختياري)", "") || null;
+  const notes = prompt("ملاحظات (اختياري)", "") || null;
+  await rpc("debt_ledger_classify", {p_id: id, p_category: cat, p_settlement_method: method, p_notes: notes});
+  toast("✅ اتصنّفت");
+  loadDebtKpis(); loadDebtLedger('unclassified');
+}
+async function settleDebt(id, fullAmount){
+  const amt = prompt(`كام اتسدّد من الـ${fullAmount} ج؟`, fullAmount);
+  if(amt===null) return;
+  await rpc("debt_ledger_settle", {p_id: id, p_settled_amount: +amt});
+  toast("✅ اتسجّل التسديد");
+  loadDebtKpis(); loadDebtLedger('receivable');
 }
 
 async function loadPayoutRecipients(){
