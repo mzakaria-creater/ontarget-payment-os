@@ -504,6 +504,7 @@ td.mono, th.mono{font-family:'JetBrains Mono',monospace}
     <div class="topbar">
       <div class="topbar-time mono" id="topbarTime"></div>
       <div style="display:flex;align-items:center;gap:14px">
+        <button id="soundToggle" onclick="toggleNotifSound()" title="كتم/تفعيل صوت الإشعار" style="background:none;border:1px solid var(--line);border-radius:8px;padding:4px 10px;color:var(--gold);cursor:pointer;font-size:14px">🔔</button>
         <div class="feed-toggle" onclick="toggleFeedDrawer()"><span class="feed-dot"></span> النشاط الحي</div>
         <div style="color:var(--mute);font-size:11px">Supabase · تحديث تلقائي</div>
       </div>
@@ -1427,6 +1428,37 @@ function openMoreSheet(){
 }
 function closeMoreSheet(){ document.getElementById("moreSheetOverlay")?.classList.remove("show"); }
 
+// 🔔 نظام إشعار صوتي عند وصول معاملة جديدة (Web Audio API — بدون ملفات خارجية)
+window._notifSoundEnabled = true;
+function playNotifSound(){
+  if(!window._notifSoundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // نغمة 1 — ping مرتفع
+    const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+    o1.type = 'sine'; o1.frequency.setValueAtTime(880, ctx.currentTime);
+    o1.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08);
+    g1.gain.setValueAtTime(0.18, ctx.currentTime);
+    g1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+    o1.connect(g1); g1.connect(ctx.destination);
+    o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.25);
+    // نغمة 2 — confirmation chime (أعلى بنصف ثانية)
+    const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+    o2.type = 'sine'; o2.frequency.setValueAtTime(1320, ctx.currentTime + 0.12);
+    g2.gain.setValueAtTime(0.14, ctx.currentTime + 0.12);
+    g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.start(ctx.currentTime + 0.12); o2.stop(ctx.currentTime + 0.4);
+    setTimeout(()=>ctx.close(), 500);
+  } catch(e){}
+}
+
+function toggleNotifSound(){
+  window._notifSoundEnabled = !window._notifSoundEnabled;
+  document.getElementById("soundToggle").textContent = window._notifSoundEnabled ? '🔔' : '🔇';
+  toast(window._notifSoundEnabled ? '🔔 صوت الإشعار مفعّل' : '🔇 صوت الإشعار مكتوم');
+}
+
 async function loadStats(){
   const s=await rpc("dashboard_stats");if(!s)return;
   document.getElementById("dot").className="dot "+(s.automation_enabled?"live":"dead");
@@ -1435,9 +1467,11 @@ async function loadStats(){
   const k=[{n:s.approval_rate+"%",l:"نسبة القبول",c:""},{n:s.today_approved,l:"مقبول اليوم",c:"g"},{n:s.today_declined,l:"مرفوض اليوم",c:"r"},{n:s.today_pending,l:"انتظار",c:"a"},{n:s.jobs_pending+s.jobs_running,l:"طابور",c:"b"},{n:s.jobs_completed_today,l:"نُفّذ",c:"g"}];
   document.getElementById("kpis").innerHTML=k.map(x=>`<div class="kpi ${x.c}"><div class="num">${x.n}</div><div class="lbl">${x.l}</div></div>`).join("");
   const total = (s.today_approved||0)+(s.today_declined||0)+(s.today_pending||0);
-  if(window._lastPulseTotal!==undefined && total!==window._lastPulseTotal){
+  if(window._lastPulseTotal!==undefined && total>window._lastPulseTotal){
     const rail=document.getElementById("pulseRail");
     if(rail){rail.classList.add("flash");setTimeout(()=>rail.classList.remove("flash"),900);}
+    // 🔔 صوت إشعار عند وصول معاملة جديدة (بس لما العدد يزيد، مش لما ينقص)
+    playNotifSound();
   }
   window._lastPulseTotal = total;
 }
