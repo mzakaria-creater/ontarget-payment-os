@@ -1315,9 +1315,15 @@ async function doPanelLogin(){
     localStorage.setItem("ot_auth_token", d.access_token);
     localStorage.setItem("ot_user_id", d.user.id);
     const prof = await rpc("panel_profile_get", {p_user_id: d.user.id});
-    if(!prof || !prof.ok || !prof.active){
+    // 🆕 نفرّق بوضوح بين فشل تقني (prof=null) وبين الحساب فعلاً موقوف (prof.active=false)
+    if(prof === null){
+      document.getElementById("loginError").textContent = "⚠️ فشل تقني في التحقق من الحساب — جرّب تاني أو ابلّغني";
+      localStorage.removeItem("ot_auth_token"); localStorage.removeItem("ot_user_id");
+      return;
+    }
+    if(!prof.ok || !prof.active){
       document.getElementById("loginError").textContent = "الحساب موقوف أو غير مفعّل";
-      localStorage.removeItem("ot_auth_token");
+      localStorage.removeItem("ot_auth_token"); localStorage.removeItem("ot_user_id");
       return;
     }
     await enterApp(prof);
@@ -1334,8 +1340,13 @@ async function checkExistingSession(){
     const r = await fetch(`${SUPA}/auth/v1/user`, {headers: {"apikey":KEY, "Authorization":"Bearer "+token}});
     if(!r.ok){ localStorage.removeItem("ot_auth_token"); localStorage.removeItem("ot_user_id"); return false; }
     const prof = await rpc("panel_profile_get", {p_user_id: userId});
+    if(prof === null){
+      // 🆕 فشل تقني (مش auth) — نسيب التوكن زي ما هو ونعرض الشاشة تاني بدل ما نمسحه بصمت
+      console.error("checkExistingSession: panel_profile_get returned null (network/RPC issue)");
+      return false;
+    }
     if(prof && prof.ok && prof.active){ await enterApp(prof); return true; }
-  }catch(e){}
+  }catch(e){ console.error("checkExistingSession error:", e); }
   localStorage.removeItem("ot_auth_token"); localStorage.removeItem("ot_user_id");
   return false;
 }
